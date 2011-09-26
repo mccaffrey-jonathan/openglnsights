@@ -1,0 +1,46 @@
+The integrated memory architecture of most mobile system puts
+additional limits on memory bandwidth.  Unlike in most desktop systems
+with dedicated graphics memory, display and rendering directly compete
+with the rest of the system for bandwidth.
+
+You can reduce memory bandwidth costs for textures reads and
+framebuffer writes through changes in algorithm, resolution, and
+pixel format.
+
+The memory bandwidth consumption of the final framebuffer doesn't end
+when you write it, either.  Depending on the platform, it could be read
+or 2 more times before ending up on-screen.  It may need to be
+composited by the platform-specific windowing system, and then scanned
+out to the display.  Unlike on desktop systems which often have
+dedicated graphics or framebuffer memory, this will also consume
+system memory bandwidth.  
+
+Framebuffer resolution may be difficult to reduce without affecting
+quality significantly.  However, background render targets used for
+reflections, shadows, and some post-processing affects may be prime
+candidates for this.
+
+#TODO test+numbers on framebuffer format reduc quality and size
+
+Using smaller pixel formats can also yield significant space and
+bandwidth savings for a minimal image quality cost.  Framebuffer
+format is set with glRenderbufferStorage.  
+#TODO give specific args
+
+This is especially well-suited for the main output framebuffer, since
+the loss of numerical precision won't propagate to later passes.
+#TODO is that clear why?
+#TODO look-up options and set 565
+#TODO remove you
+When using a smaller pixel format, you should be careful to inspect
+areas of your scene with delicate color transitions or gradients to
+make sure you don't suffer from banding.
+#TODO link http://www.curious-creature.org/2010/12/08/bitmap-quality-banding-and-dithering/
+
+Heavy overdraw can also cause excessive memory bandwidth consumption
+on non-tile-based architectures.
+#TODO http://www.anandtech.com/show/735/3 
+
+On non-tile-based architectures, this extra bandwidth consumption can
+limited by sorting geometry from front-to-back and limiting alpha
+blending.
