@@ -1,0 +1,2 @@
+A unified memory architecture presents challenges for memory bandwidth consumption, but it does have performance advantages.  Video-to-system memory read operations like glReadPixels and system-to-video memory write operations like glTexImage2D can transfer data over the main memory bus, rather than across a peripheral bus like PCIe with a discreet desktop GPU.  This allows for comparitively higher transfer bandwidth.
+#TODO numbers for readPixels and texImage2D vs memcpy

@@ -1,0 +1,8 @@
+There are multiple ways of handling branches in graphics hardware.  OpenGL ES2 itself is fairly restrictive on the type of branches that are allowed.  For example, implementations may allow that all loops be unrollable. 
+#TODO link http://www.khronos.org/assets/uploads/developers/library/2011-siggraph-mobile/Writing-Portable-OpenGL-ES-2.0_Aug-11.pdf
+
+#TODO test execute all conditions and branches, vs executing based on incoherent conditions, vs. executing based on coherent conditions
+Assuming parallel execution of fragment shaders, there are multiple ways to implement branches.  It's possible that the value for each fragment is computed with it's own execution stream, and that arbitrary branching can waste no cycles.  Another possibility is that there exists a "branch granularity". 
+#TODO link http://www.anandtech.com/show/2116/7
+#TODO add branch granularities to above test
+Fragment shaders outside of that granularity can branch arbitrarily without interfering.  However, within the branch granularity, divergent branches (branches that are taken differently for different fragments) can cause serialization of the different code paths.  In the last extreme, all branch paths are executed, and the results are predicated out.
