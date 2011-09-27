@@ -1,0 +1,5 @@
+Be sure to link these back:
+Alpha and opacity (BW)
+Post process (BW)
+Per-pixel vs vertex and object (relative nums, ALU limited)
+Texture compression (measure that shit! or look it up)

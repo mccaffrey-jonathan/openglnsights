@@ -37,10 +37,13 @@ areas of your scene with delicate color transitions or gradients to
 make sure you don't suffer from banding.
 #TODO link http://www.curious-creature.org/2010/12/08/bitmap-quality-banding-and-dithering/
 
-Heavy overdraw can also cause excessive memory bandwidth consumption
-on non-tile-based architectures.
+Heavy overdraw can also cause excessive memory bandwidth consumption, in
+addition to wasted fragment shader calculations, on non-tiled architectures, since the framebuffer is re-written each time a newly rendered fragment passes the depth test.  Even without overdraw, heavy overlapping geometry consumes additional bandwidth due to the depth buffer reads needed to reject it.
 #TODO http://www.anandtech.com/show/735/3 
 
-On non-tile-based architectures, this extra bandwidth consumption can
-limited by sorting geometry from front-to-back and limiting alpha
-blending.
+On non-tiled architectures, this extra bandwidth consumption can limited by sorting geometry from front-to-back blending.  
+
+Full-screen post-processing effects can be particular expensive, both for bandwidth and for ALU cycles, since they imply at least a read and write of the framebuffer contents at full resolution, plus any additional textures.  These are excellent candidates for reduced precision renderbuffer and lowp-precision values.  If you do require full-screen post-processing effects, coalescing all the effects into a single pass will minimize the bandwidth cost by avoiding a framebuffer round-trip, although it may not significantly impact the ALU cycles required.
+#TODO grab numbers from unity talk
+#TODO link http://blogs.unity3d.com/wp-content/uploads/2011/08/FastMobileShaders_siggraph2011.pdf
+
