@@ -1,0 +1,37 @@
+Discuss market
+    don't waste much time here
+    consumer and business/scientific (remotes, reference, reporting)
+Discuss constraints (cost, die size, power, heat)
+Differences of scale between mobile and desktop
+    Get some rough nums
+    CPU, mem BW, fill rate
+Rough power/frequency/heat consumption stats? Need good source
+Architectural difference veeeeeery short here
+    Unified memory architecture
+    Tiled, TBDR, and IM 
+
+pixel shader work
+
+texture_bw_snippet 
+
+FS post test
+    Talk about common uses of FS post on desktop
+        Top games, what kind of passes do they do?
+    Simulate reasonable vertex lighting plus
+        Nothing
+        Pure readback and out
+        2 filters back to back
+        2 filters coalesced
+            Which filters? Bloom (make it efficient)
+                           Motion blur?
+        Mention system-compositing here? Approaches different mobile systems take?
+            Quartz?
+            SurfaceFlinger?
+            Is a potential perf hit
+
+integrated_mem_perf
+    Readback
+    Texture upload, without blocking to use
+        Make sure these agree roughly with expectations, in case of drivers doing clever things to not-do-work
+    EGL Streams?
+

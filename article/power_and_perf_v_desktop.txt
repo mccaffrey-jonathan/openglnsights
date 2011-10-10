@@ -1,0 +1,26 @@
+
+Need 2 mid-line desktop GPU's and some mobile
+
+These also have pixel fill etc nums if you need
+Nvidia GTX 480
+http://graphics-cards-review.toptenreviews.com/nvidia-geforce-gtx-480-details.html
+Maximum GPU Temperature (in C)  - 105 C
+Maximum Graphics Card Power (W)     -250 W
+Graphics Clock (MHz)    - 700 MHz
+Processor Clock (MHz)   - 1401 MHz
+Memory Clock (MHz)  - 1848 
+Memory Interface Width  - 384-bit
+Memory Bandwidth (GB/sec)   - 177.4
+
+
+ATI Radeon HD 5870
+http://graphics-cards-review.toptenreviews.com/ati-radeon-hd-5870-details.html
+GDDR5 interface with 153.6 GB/sec of memory bandwidth
+Engine clock speed: 850 MHz
+Polygon throughput: 850M polygons/sec
+Memory clock speed: 1.2 GHz
+Memory bandwidth: 153.6 GB/sec
+Maximum board power: 188 Watts
+
+
+
