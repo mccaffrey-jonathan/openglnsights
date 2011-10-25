@@ -14,6 +14,8 @@ pixel shader work
 
 texture_bw_snippet 
 
+Framebuffer bw snippet
+
 FS post test
     Talk about common uses of FS post on desktop
         Top games, what kind of passes do they do?

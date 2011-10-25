@@ -1,0 +1,46 @@
+1) OpenGL ES2-compatible benchmarks that run on desktop GL
+
+Desktop support for actual OpenGL ES2 + EGL is limited and inconsistent.  We will try to abstract EGL and ES2 specific details out, and use only a common subset.  Unsure how this will work for fragment shaders, we may need to check #def configs and load different shaders
+
+2) Comparable between platforms, use off-screen fixed-size targets when possible?
+1024x768 seems a reasonable size
+
+3) Keep as many platform details out of tests as possible
+
+4) Keep as many timing details out of tests as possible
+
+5) Planned platform support:
+Android
+iOS
+Ubuntu
+
+6) Planned tests
+Read accumulator test for memory bandwidth
+Triangle throughput
+Fill rate
+Full-screen post tests:
+    Single pass with vertex lighting
+    Single pass with fragment lighting
+    Post processing pass
+    Post processing pass #2
+    Both passes
+    Merged passes
+
+7) Posix ok?
+All platforms we want are reasonably conformant? Except things like file-io
+
+Goals:
+Setup
+Warm-up
+Run
+Tear-down
+Time and compute/report result
+
+Name
+Setup
+WarmUp
+Run
+Report (say what you did)
+TearDown
+
+Test interface

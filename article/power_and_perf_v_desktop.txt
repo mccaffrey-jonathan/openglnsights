@@ -22,5 +22,9 @@ Memory clock speed: 1.2 GHz
 Memory bandwidth: 153.6 GB/sec
 Maximum board power: 188 Watts
 
+While power consumption numbers for mobile GPUs are not well-publicized,
+researcher measuring the Samsung Galaxy S playing a game (Angry Birds) measured
+<2W system power consumption, which includes the power needed for display.  
+http://www.ekc2011.org/II-05.-%20EKC%202011%20-%20Smartphone%20power.pdf
 
-
+//TODO fill rate, poly-throughput, bandwidth tests, clear speed, 

@@ -1,0 +1,35 @@
+Full-screen post-processing effects are a major tool for visual effects in
+modern games and graphics applications. Common applications of full-screen
+post-processing in games are motion-blur, depth-of-field, screen-space ambient
+occlusion, light bloom, color filtering, and tone-mapping.  Other applications
+such as photo-editing tools may use full-screen or large-quad effects for
+composition, blending, and filtering.
+
+While they allow for beautiful and creative effects, full-screen
+post-processing is an easy way to consume large amounts of band-width and ALU
+cycles.  Such effects should be carefully weighed for their worth, and are
+prime candidates for optimization.
+
+One way to optimize these effects is to remove the extra full-screen pass, with
+all the bandwidth cost it implies.  Some post-processing effects such as
+color-filtering or tone-mapping that don't require knowledge of neighboring
+pixels or feedback from rendering may be merged into the fragment shaders for
+the objects themselves.  This may require the use of uber-shaders or shader
+generation, to allow for natural editing of object fragment shaders.
+
+Some kinds of blurs such as light bloom can be accomplished more efficiently
+using texture filtering hardware.  Rather than taking multiple samples of a
+full-screen texture to perform a blur, the scene can be rendered into a
+low-resolution offscreen target.  The main fragment for the scene can then bind
+that target as a texture and read from it with an appropriate texture-filtering
+mode such as GL_LINEAR.  The smaller size of the offscreen target makes this
+strategy particularly cache-friendly.
+
+Whenever moving additional computations into the fragment shader of objects in
+the scene, it is important on non-tiled architecture to minimize over-draw to
+avoid wasted work.  One advantage of full-screen post-processing is that each
+pixel is computed exactly once.
+
+Multi-sample effects are likely to be the most expensive, due to the multiple
+texture accesses per-pixel, and the cost to combine those multiple samples.
+Locality of reference does de-fray the cost of multiple accesses somewhat.

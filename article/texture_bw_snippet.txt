@@ -27,8 +27,8 @@ bandwidth savings for a minimal image quality cost.  Framebuffer
 format is set with glRenderbufferStorage.  
 #TODO give specific args
 
-This is especially well-suited for the main output framebuffer, since
-the loss of numerical precision won't propagate to later passes.
+This is especially well-suited for the main output framebuffer, since the loss
+of numerical precision won't propagate to later passes/computations
 #TODO is that clear why?
 #TODO look-up options and set 565
 #TODO remove you
@@ -37,13 +37,57 @@ areas of your scene with delicate color transitions or gradients to
 make sure you don't suffer from banding.
 #TODO link http://www.curious-creature.org/2010/12/08/bitmap-quality-banding-and-dithering/
 
-Heavy overdraw can also cause excessive memory bandwidth consumption, in
-addition to wasted fragment shader calculations, on non-tiled architectures, since the framebuffer is re-written each time a newly rendered fragment passes the depth test.  Even without overdraw, heavy overlapping geometry consumes additional bandwidth due to the depth buffer reads needed to reject it.
-#TODO http://www.anandtech.com/show/735/3 
+For static textures (as opposed to textures resulting from off-screen render
+targets) texture compression is another great way to save bandwidth,
+loading-time, and memory footprint, and disk space.  Even though work must be
+done to de-compress the texture data when it is used, the smaller size of
+compressed textures make them friendlier to texture caching and memory
+bandwidth, increasing run-time performance. 
 
-On non-tiled architectures, this extra bandwidth consumption can limited by sorting geometry from front-to-back blending.  
+One complication is that there are multiple incompatible formats for texture
+compression supported via OpenGL ES2 extensions.  To support texture
+compression on multiple devices, your application must either package multiple
+versions of their assets and dynamically choose the correct ones, or perform
+the compression at run-time/install-time.  Performing the compression at run or
+install-time must be done carefully to not slow down your application, and
+gives up many of the benefits of improved loading-time and disk-space, as well
+as the internet bandwidth required for installation/download of the application
+on mobile devices.
+http://developer.motorola.com/docstools/library/understanding-texture-compression/
+http://www.oldunreal.com/editing/s3tc/ARB_texture_compression.pdf
 
-Full-screen post-processing effects can be particular expensive, both for bandwidth and for ALU cycles, since they imply at least a read and write of the framebuffer contents at full resolution, plus any additional textures.  These are excellent candidates for reduced precision renderbuffer and lowp-precision values.  If you do require full-screen post-processing effects, coalescing all the effects into a single pass will minimize the bandwidth cost by avoiding a framebuffer round-trip, although it may not significantly impact the ALU cycles required.
+On non-tiled architectures, overdraw can also cause excessive memory bandwidth
+consumption, in addition to wasted fragment shader calculations,  since the
+framebuffer is re-written each time a newly rendered fragment passes the depth
+test.  Even if the scene is rendered front-to-back, and pixels do not have to
+be re-shaded, or the framebuffer written additional times, heavy overlapping
+geometry consumes additional bandwidth due to the depth buffer reads required
+to reject pixels.  #TODO http://www.anandtech.com/show/735/3 
+
+On non-tiled architectures, this extra bandwidth consumption can limited by
+sorting geometry from front-to-back blending.  This is especially practical for
+static geometry which can be processed into a spatial data structure during
+export.  For batches where front-to-back object sorting is not practical, for
+example with complicated, interlocking geometry, a depth-prepass can be used to
+eliminate redundant pixel calculations, at the cost of repeated vertex shading
+work, primitive assembly, and depth-buffer access.
+
+One type of effect that can be particular expensive in terms of read and write
+bandwidth are particle effects rendered via multiple overlapping quads with
+blending.  These often overlap and are blended multiple layers deep.  Each
+layer of overlap requires a read and write of the existing framebuffer value,
+and an additional fragment computation and blending operation.
+
+
+
+Full-screen post-processing effects can be particular expensive, both for
+bandwidth and for ALU cycles, since they imply at least a read and write of the
+framebuffer contents at full resolution, plus any additional textures.  These
+are excellent candidates for reduced precision renderbuffer and lowp-precision
+color values.  If you do require full-screen post-processing effects,
+coalescing all the effects into a single pass will minimize the bandwidth cost
+by avoiding a framebuffer round-trip, although it may not significantly impact
+the ALU cycles required.
 #TODO grab numbers from unity talk
 #TODO link http://blogs.unity3d.com/wp-content/uploads/2011/08/FastMobileShaders_siggraph2011.pdf
 

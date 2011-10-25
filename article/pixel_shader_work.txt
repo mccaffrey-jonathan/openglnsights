@@ -1,0 +1,20 @@
+
+Resolutions of desk-top and mobile platforms:
+
+//TODO Make table with fractions
+Reasonable 24-inch monitor: 1920x1080 = 2073600
+http://www.newegg.com/Product/Product.aspx?Item=N82E16824236102
+Reasonable 17-inch monitor 1280x1024 = 1310720
+http://www.newegg.com/Product/Product.aspx?Item=N82E16824009230
+
+iPad 2 1024x768 = 768432
+iPhone 4S 960x640 = 614400
+Motorola XOOM 1280x800 = 1024000
+Galaxy S2 800x480 = 384000
+
+Although mobile GPUs have a fraction of the power, size, and cost envelopes of
+desktop components, the output resolution of popular mobile resolution is a
+sizeable fraction of that of a desktop display.  This means that per-pixel work
+can be expected to be more of a bottleneck for mobile graphics.
+
+

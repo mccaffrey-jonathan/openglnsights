@@ -1,0 +1,4 @@
+
+Optimizations may be different depending on tiling or non-tiling architecture.  For example, since vertex processing must be repeated across all tiles, the Apple developer documentation suggests lifting lighting calculations into the fragment shader, which ordinarily seems more expensive.
+
+http://developer.apple.com/library/ios/#documentation/3DDrawing/Conceptual/OpenGLES_ProgrammingGuide/TechniquesforWorkingwithVertexData/TechniquesforWorkingwithVertexData.html#//apple_ref/doc/uid/TP40008793-CH107-SW1
