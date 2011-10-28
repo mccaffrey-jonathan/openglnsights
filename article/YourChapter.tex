@@ -41,13 +41,183 @@ There are some advantages to an unified memory architecture.  With discrete GPU'
 
 One limitation is that OpenGL ES does not yet have an extension for \textit{Pixel Buffer Objects (PBO)}, meaning that pixel data must be transferred synchronously.  This makes the comparatively cheap bandwidth between client and server data less useful.
 
-\section{Mobile Performance Pressures}\label{Jon-McCaffrey:differences-in-memory-architecture}
+\section{Reducing Memory Bandwidth}\label{Jon-McCaffrey:differences-in-memory-architecture}
+
+Memory bandwidth pressure is one of the major performance bottlenecks on mobile devices.
+
+TODO cite CPU/GPU read and write bandwidth numbers
+
 \subsection{Relative Display Sizes}\label{Jon-McCaffrey:differences-in-memory-architecture}
 
+Despite the tight power and cost constraints for mobile devices, the display sizes of modern mobile devices are a considerable fraction of the size of desktop displays.  
+
+\begin{table}[htb]\centering
+\begin{tabular}{|c|c|c|c|}
+\hline%
+\small{Device} & \small{Resolution} & \small{Percentage of 1280x1024 (20 in)} & \small{Percentage of 1920x1080 (24 in)}  \\
+\hline%
+\small{Motorola XOOM} & \small{1280x800} & \small{\%78.13} & \small{\%49.38}\\
+\hline%
+\small{Apple iPad 2} & \small{1024x768} & \small{\%58.63} & \small{\%37.06}\\
+\hline%
+\small{Apple iPhone 4S} & \small{960x640} & \small{\%46.89} & \small{\%29.63}\\
+\hline%
+\small{Samsung Galaxy S2} & \small{800x480} & \small{\%30.00} & \small{\%18.52}\\
+\hline%
+\end{tabular}
+ \caption{Resolution comparison of desktop and mobile displays}
+ \label{JonMcCaffrey:resolutions}
+\end{table}
+
+With the limited fragment compute throughput and memory bandwidth of mobile devices, these comparatively large display sizes mean that fragment shading and full-screen (or large-quad) operations can easily become a bottleneck.
+
+There is also a large spread of resolution sizes within mobile devices, so testing on multiple devices is important, for performance testing as well as useabilty concerns.
+
+\subsection{Framebuffer Bandwidth}
+
+How much bandwidth is consumed on framebuffer operations anyways?  Assume the common configuration of 16-bit color with 16-bit depth, with a reasonable 1024x768 display.  Accessing every pixel in the framebuffer 60 times a second takes 94MB/s of bandwidth.  So simply to write all the pixels in a scene, with \%0 overdraw, takes 94MB/s of bandwidth.
+
+TODO link http://developer.android.com/reference/android/opengl/GLSurfaceView.html
+
+However, assuming an IMR architecture, to be able to render a scene, we also have to perform a depth-buffer read for each rendered pixel.  Both the depth-buffer and the color buffer are also usually cleared each frame.  
+
+However, the memory bandwidth consumption of the final framebuffer doesn't end when the application is done writing it.  After \texttt{eglSwapBuffers}, it may need to be composited by the platform-specific windowing system, and then scanned out to the display.  Unlike on desktop systems which often have dedicated graphics or framebuffer memory, this will also consume system memory bandwidth.  This will consume an additional 96MB/s of bandwidth just for scanout, or at least an additional 288MB/s with composition(read, write, and scan-out).
 
 
+Thus basic clear-fill-and-post operation consumes 470-658MB/s of bandwidth, so even basic operations consume a significant amount of memory bandwidth.  To put this in context, the iPad2 has been benchmarked at 2.3GB/s for stdlib writes.  http://www.anandtech.com/show/4215/apple-ipad-2-benchmarked-dualcore-cortex-a9-powervr-sgx-543mp2/2
+If a 32-bit framebuffer is used, this number will be even greater (http://www.curious-creature.org/2010/12/04/gingerbread-and-32-bits-windows/).  
+
+#TODO Bandwidth nums to put this in context
+
+Applications using a 32-bit framebuffer that may be bandwidth-bound should experiment with a lower-precision format.  Since the output framebuffer is not often used in subsequent calculations, the loss of numerical precision is not propagated and magnified.  One valid concern is banding or quantization of smooth gradients.  However, this may be more of an issue in graphics, photography and compositing applications rather than games and 3d-applications, just because of the nature of the produced content.
+
+\subsection{Texture Bandwidth}
+Since texture accesses are often performed at least once per-pixel, these can be another large source of bandwidth consumption.
+
+One simple way to reduce bandwidth is to lower the texture resolution.  Fewer texels, besides a smaller memory footprint, means better texture cache utilization and more efficient filtering.  The framebuffer resolution usually can't be lowered, since native resolution is expected.  Texture sizes are more flexible.  If assets have been ported from desktop, there may be room for optimization here.
+
+For static textures (as opposed to textures resulting from off-screen render
+targets) texture compression is another great way to save bandwidth,
+loading-time, memory footprint, and disk space.  Even though work must be
+done to de-compress the texture data when it is used, the smaller size of
+compressed textures makes them friendlier to texture caching and memory
+bandwidth, increasing run-time performance. 
+
+One complication is that there are multiple incompatible formats for texture
+compression supported via OpenGL ES2 extensions.  Example formats would be S3TC, available on Nvidia Tegra, and PVRTC, available on ImaginationTech PowerVR.
+
+To support texture compression on multiple devices, your application must
+either package multiple versions of their assets and dynamically choose the
+correct ones, or perform the compression at run-time/install-time.  Performing
+the compression at run or install-time must be done carefully to not slow down
+your application, and gives up many of the benefits of improved loading-time
+and disk-space, as well as the internet bandwidth required for
+installation/download of the application on mobile devices.  S3TC has
+compressions ratios between 4:1 and 8:1.
+http://developer.motorola.com/docstools/library/understanding-texture-compression/
+http://www.oldunreal.com/editing/s3tc/ARB_texture_compression.pdf
+
+\Section{Reducing Fragment Workload}
+
+Often related to memory bandwidth and resolution is fragment shading.  Besides trimming shader instructions and heavy operations, fragment shading can be optimized in other ways.
+
+\subsection{Overdraw and Blending}
+Overdraw is when pixels that have previously been shaded are over-written by later fragments in a scene.  On non-tiled architectures, overdraw wastes fragment processing, since the previous computed pixel value is over-written and lost.  The additional framebuffer writes also waste bandwidth.
+
+On non-tiled architectures, this extra bandwidth consumption can limited by
+sorting and rendering geometry from front to back.  This is especially
+practical for static geometry which can be processed into a spatial data
+structure during export.  An additional heuristic for games is to render the
+player character first and the sky-box last.  For batches where front-to-back
+object sorting is not practical, for example with complicated, interlocking
+geometry or heavy use of alpha-testing, a depth-prepass can be used to
+eliminate redundant pixel calculations, at the cost of repeated vertex shading
+work, primitive assembly, and depth-buffer access.
+
+TODO cite unity talk
+
+Even without overdraw, heavy amounts of over-lapping geometry can still be expensive because of the depth buffer reads needed to reject pixels.  Primitive assembly, rasterization, and the pixel reject rate can also become limiting for large areas like sky-boxes.
+
+TODO cite unity talk again.
+
+One type of effect that can be particular expensive in terms of fragment
+shading and read and write bandwidth is particle effects rendered via multiple
+overlapping quads with blending.  These often overlap and are blended multiple
+layers deep.  Each layer of overlap requires a read and write of the existing
+framebuffer value, and an additional fragment computation and blending
+operation.  One simple fix is tuning the size, count and style of particles.
+
+\subsection {Full-Screen Effects} 
+Full-screen post-processing effects are a major tool for visual effects in
+modern games and graphics applications, and have been an area of innovation in
+recent years.   Common applications of full-screen post-processing in games are
+motion-blur, depth-of-field, screen-space ambient occlusion, light bloom, color
+filtering, and tone-mapping.  Other applications such as photo-editing tools
+may use full-screen or large-area effects for composition, blending, distortion
+and filtering.
+
+While it allows for beautiful and creative effects, full-screen post-processing
+is an easy way to consume large amounts of bandwidth and fragment processing.
+Such effects should be carefully weighed for their worth, and are prime
+candidates for optimization.  
+
+A full-screen pass implies at least a read and write of the framebuffer at full
+resolution, which at 16-bit color and a 1024x768 resolution means 188MB/s
+bandwidth.  One way to optimize these effects is to remove the extra
+full-screen pass.  Some post-processing effects such as color-filtering or
+tone-mapping that don't require knowledge of neighboring pixels or feedback
+from rendering may be merged into the fragment shaders for the objects
+themselves.  This may require the use of \textit{uber-shaders} or shader
+generation, to allow for natural editing of object fragment shaders while
+appending post-processing effects.
+
+If the additional pass cannot be eliminated, then all full-screen post effects should be merged into a single pass.  This improves locality and saves redundant round-trips to framebuffer memory.
+
+#TODO numbers here
+
+One limitation of OpenGL ES 2.0 is the poor support for multiple render
+targets.  This makes deferred shading impractical, since running a full pass of
+the scene for each geomtry buffer is too expensive, but only 1 geometry buffer
+can be rendered at a time.
+
+\subsection{Off-screen pass}
+
+Similar to full-screen effects are effects requiring off-screen render targets like environmental reflections, depth-map shadows, and light bloom.
+
+One way to optimize full-screen effects that require a blurred image is to take
+advantage of texture filtering hardware.  Rather than rendering a large
+offscreen image, then taking multiple samples in a fragment shader to blur, the
+scene can be rendered into a low-resolution offscreen target.  
+
+The main fragment shader for the scene can then bind that target as a texture
+and read from it with an appropriate texture-filtering mode such as GL_LINEAR.
+The smaller size of the offscreen target makes this strategy particularly
+cache-friendly.  This works well for light bloom and environmental reflection,
+for example.  Even when the blurring due to texture filtering is not
+beneficial, reducing off-screen target resolution may be an easy way to reduce
+the fragment workload and memory bandwidth without a serious visual impact.
+
+Whenever moving additional computations into the fragment shader of objects in
+the scene, it is important on non-tiled architecture to minimize over-draw to
+avoid wasted work.  One advantage of full-screen post-processing is that each
+pixel is computed exactly once.
+
+\subsection{Shaving Fragment Work}
+
+#TODO light vs normal fragment shaders with approximately same work
+
+\subsection{Vertex vs. Fragment work}
+
+For lighting and shading the primary objects in your scene, IMR wisdom states that moving computations like lighting, specularity, and normalization from per-fragment to per-vertex can save performance at the cost of image quality, and this is still very true for IMR.
+
+#TODO linkhttp://developer.apple.com/library/ios/#documentation/3DDrawing/Conceptual/OpenGLES_ProgrammingGuide/TechniquesforWorkingwithVertexData/TechniquesforWorkingwithVertexData.html#//apple_ref/doc/uid/TP40008793-CH107-SW1
+
+However, for TBDRs, this performance wisdom is more dubious.  This is because mobile devices do have smaller screens that desktop, and because TBDRs must perform all vertex computations for each tile.  This means that heavy vertex shaders, even if they save fragment work, may be a performance drag on TBDR.  This is particularly true since TBDRs due little-to-no redundant fragment work.
+
+Vertex processing may also be more of a bandwidth drain on TBDRs, since the attributes must be pulled again for each tile.  To lower this bandwidth, a lower-precision buffer format may be used such as \textit{OES_vertex_half_float}.  Interleaved vertex data, which interleaves the attributes for each vertex in the same buffer, is also much more efficient to fetch, since an entire vertex can be fetched in one linear read.  If there is a pre-transform attribute cache, this will also use it more efficiently.  
+http://www.khronos.org/registry/gles/extensions/OES/OES_vertex_half_float.txt
 \section{Conclusion}
-
+http://aras-p.info/blog/2011/02/01/ios-shader-tricks-or-its-2001-all-over-again/
 TODO conclude
 
 
