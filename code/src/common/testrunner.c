@@ -1,4 +1,5 @@
 #include "common/test.h"
+#include "platform/time.h"
 
 static void PrintResult(const TestCase* test,
         const TestResult* res,
@@ -14,10 +15,12 @@ static void PrintResult(const TestCase* test,
     fprintf(output, "%s", "\n");
 }
 
-static TestError RunTest(const TestCase* test)
+static TestResult RunTest(const TestCase* test)
 {
-    TestData data;
-    TestError err = Success;
+    TestData data = {
+        .priv = NULL,
+    };
+    TestError err = SUCCESS;
     int64_t elapsed = 0;
     TestReport work = {
        .unit = INVALID, 
@@ -42,25 +45,20 @@ static TestError RunTest(const TestCase* test)
     if (err != SUCCESS)
         goto finish;
 
-    err = test->teardown(&data);
-    if (err != SUCCESS)
-        goto finish;
-
 finish:
+    err = test->teardown(&data);
 
-    TestResult res = {
-        .report = work;
-        .elapsed = elapsed;
-        .err = err;
+
+    return (TestResult)
+    {
+        .report = work,
+        .elapsed = elapsed,
+        .err = err,
     };
-    return res;
 }
 
-static const TestCase* suite [] = {
-
-};
-
-static const uint32_t num_tests = sizeof(suite) / sizeof(const TestCase*);
+extern const TestCase* suite [];
+extern const uint32_t num_tests;
 
 void RunAllTests(FILE* output)
 {

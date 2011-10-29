@@ -1,5 +1,6 @@
-#include "common/time.h"
+#include "platform/time.h"
 
+#include <stdlib.h>
 #include <sys/time.h>
 
 int64_t TimeMillis() {

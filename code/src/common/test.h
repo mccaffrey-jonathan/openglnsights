@@ -1,6 +1,9 @@
 #ifndef COMMON_TEST_H
 #define COMMON_TEST_H
 
+#include <stdint.h>
+#include <stdio.h>
+
 typedef enum {
     INVALID,
     TRIANGLES,
@@ -12,6 +15,9 @@ typedef enum {
     SUCCESS,
     FEATURE_UNSUPPORTED,
     OUT_OF_MEMORY,
+    NULL_POINTER,
+    OUT_OF_BOUNDS,
+    INIT_FAILED,
     UNKNOWN_ERROR,
 } TestError;
 
@@ -45,6 +51,6 @@ typedef struct {
     TearDownFunc teardown;
 } TestCase;
 
-
+void RunAllTests(FILE* output);
     
 #endif
