@@ -1,6 +1,13 @@
 #include "common/test.h"
 #include "platform/gl.h"
 
+#define WIDTH 1024
+#define HEIGHT 1024
+#define BYTES_PER_PIXEL 2
+
+#define WARMUP_ITERS 10
+#define TEST_ITERS (1024LL / BYTES_PER_PIXEL)
+
 typedef struct {
     GLuint fbo;
     GLuint color;
@@ -18,7 +25,7 @@ static TestError setup(TestData* data)
     glGenRenderbuffers(1, &priv->color);
     glBindRenderbuffer(GL_RENDERBUFFER, priv->color);
     glRenderbufferStorage(GL_RENDERBUFFER,
-            GL_RGB5_A1, 1, 1);
+            GL_RGB5_A1, WIDTH, HEIGHT);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER,
             GL_COLOR_ATTACHMENT0,
             GL_RENDERBUFFER,
@@ -26,20 +33,31 @@ static TestError setup(TestData* data)
 
     GLenum complete = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if (complete != GL_FRAMEBUFFER_COMPLETE) {
-        fprintf(stderr, "Framebuffer incomplete");
+        fprintf(stderr, "FRAMEBUFFER_COMPLETE");
         return INIT_FAILED;
     } 
 
     glDisable(GL_DEPTH_TEST);
     //Single pixel viewport
-    glViewport(0, 0, 1, 1);
+    glViewport(0, 0, WIDTH, HEIGHT);
 
-    fprintf(stderr, "Setup done!");
     return SUCCESS;
+}
+
+static void ClearAndWait(float r, float g, float b) {
+    glClearColor(r, g, b, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    //Let's hope driver writers are honest here
+    //If not, might have to start doing single-pixel readpixels
+    glFinish();
 }
 
 static TestError warmup(const TestData* data)
 {
+    for (int i = 0; i < WARMUP_ITERS; i++) {
+        float val = ((float)i)/WARMUP_ITERS;
+        ClearAndWait(val, val, val);
+    }
     //Let work finish so we don't pollute timing
     glFinish();
     return SUCCESS;
@@ -47,14 +65,18 @@ static TestError warmup(const TestData* data)
 
 static TestError run(TestData* data)
 {
+    for (int i = 0; i < TEST_ITERS; i++) {
+        float val = ((float)i)/WARMUP_ITERS;
+        ClearAndWait(val, val, val);
+    }
     glFinish();
     return SUCCESS;
 }
 
 static TestError report(const TestData* data, TestReport* out)
 {
-    out->unit = INVALID;
-    out->count = 0;
+    out->unit = BYTES;
+    out->count = TEST_ITERS*WIDTH*HEIGHT*BYTES_PER_PIXEL;
     return SUCCESS;
 }
 
@@ -72,9 +94,9 @@ static TestError teardown(TestData* data)
     data->priv = NULL;
 }
 
-const TestCase triangle_throughput =
+const TestCase clears =
 {
-    .name = "triangle_throughput",
+    .name = "clears",
     .setup = setup,
     .warmup = warmup,
     .run = run,

@@ -1,5 +1,6 @@
 #include "common/test.h"
 #include "platform/time.h"
+#include "platform/gl.h"
 
 static void PrintResult(const TestCase* test,
         const TestResult* res,
@@ -8,7 +9,11 @@ static void PrintResult(const TestCase* test,
     fprintf(output, "%s: ", test->name);
     //TODO improve error reporting
     if (res->err == SUCCESS) {
-        fprintf(output, "%s", "SUCCESS");
+        //TODO add units
+        fprintf(output, "%s %lld in %lld ms",
+                "SUCCESS",
+                res->report.count,
+                res->elapsed);
     } else {
         fprintf(output, "%s", "TODO, improve error reporting");
     }
@@ -46,7 +51,10 @@ static TestResult RunTest(const TestCase* test)
         goto finish;
 
 finish:
-    err = test->teardown(&data);
+    //Do not record err of teardown
+    //Since we can successfully tear-down a broken set-up
+    //Teardown should be very conservative
+    test->teardown(&data);
 
 
     return (TestResult)
@@ -62,6 +70,13 @@ extern const uint32_t num_tests;
 
 void RunAllTests(FILE* output)
 {
+
+    TestError platform_err = GlPlatformSetup();
+    if (platform_err != SUCCESS) {
+        printf("%s", "Could not initialize OpenGL or windowing systems\n");
+        return;
+    }
+
     for (uint32_t i = 0; i < num_tests; i++) {
        TestResult res = RunTest(suite[i]);
        PrintResult(suite[i], &res, output);
