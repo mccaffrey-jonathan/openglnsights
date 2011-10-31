@@ -18,6 +18,8 @@ typedef enum {
     NULL_POINTER,
     OUT_OF_BOUNDS,
     INIT_FAILED,
+    SHADER_COMPILATION_FAILED,
+    SHADER_LINK_FAILED,
     UNKNOWN_ERROR,
 } TestError;
 

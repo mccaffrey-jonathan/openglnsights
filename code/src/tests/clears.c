@@ -1,12 +1,13 @@
 #include "common/test.h"
 #include "platform/gl.h"
+#include "common/gl.h"
 
 #define WIDTH 1024
 #define HEIGHT 1024
 #define BYTES_PER_PIXEL 2
 
 #define WARMUP_ITERS 10
-#define TEST_ITERS (1024LL / BYTES_PER_PIXEL)
+#define TEST_ITERS ((10 * 1024LL) / BYTES_PER_PIXEL)
 
 typedef struct {
     GLuint fbo;
@@ -29,16 +30,14 @@ static TestError setup(TestData* data)
     glFramebufferRenderbuffer(GL_FRAMEBUFFER,
             GL_COLOR_ATTACHMENT0,
             GL_RENDERBUFFER,
-            0);
+            priv->color);
 
-    GLenum complete = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    if (complete != GL_FRAMEBUFFER_COMPLETE) {
-        fprintf(stderr, "FRAMEBUFFER_COMPLETE");
-        return INIT_FAILED;
-    } 
+    TestError err = checkAndReportFramebufferStatus();
+    if (err != SUCCESS)
+        return err;
 
     glDisable(GL_DEPTH_TEST);
-    //Single pixel viewport
+
     glViewport(0, 0, WIDTH, HEIGHT);
 
     return SUCCESS;

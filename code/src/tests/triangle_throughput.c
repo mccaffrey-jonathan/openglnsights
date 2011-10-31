@@ -1,5 +1,6 @@
 #include "common/test.h"
 #include "platform/gl.h"
+#include "common/gl.h"
 
 typedef struct {
     GLuint fbo;
@@ -22,13 +23,11 @@ static TestError setup(TestData* data)
     glFramebufferRenderbuffer(GL_FRAMEBUFFER,
             GL_COLOR_ATTACHMENT0,
             GL_RENDERBUFFER,
-            0);
+            priv->color);
 
-    GLenum complete = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    if (complete != GL_FRAMEBUFFER_COMPLETE) {
-        fprintf(stderr, "Framebuffer incomplete");
-        return INIT_FAILED;
-    } 
+    TestError err = checkAndReportFramebufferStatus();
+    if (err != SUCCESS)
+        return err;
 
     glDisable(GL_DEPTH_TEST);
     //Single pixel viewport
