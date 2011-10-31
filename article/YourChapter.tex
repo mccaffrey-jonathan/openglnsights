@@ -6,16 +6,18 @@
 
 \section{Introduction}
 
-The stunning rise of mobile platforms has created a large nascent market for new 3D applications and games where, excitingly, OpenGL ES is the \textit{lingua franca} for graphics. However, mobile platforms and GPUs have performance profiles and characteristics that may be unfamiliar and surprising to desktop developers.  Developers and applications hoping to make the transition
-
- TODO Finish introduction
+The stunning rise of mobile platforms has created a large nascent market for new 3D applications and games where, excitingly, OpenGL ES is the \textit{lingua franca} for graphics. However, mobile platforms and GPUs have performance profiles and characteristics that may be unfamiliar and surprising to desktop developers.  Developers and applications hoping to make the transition from desktop to mobile need to be aware of this to create the best experience possible for given hardware.
 
 \section{Constraint Inspires Creativity}\label{Jon-McCaffrey:Constraints-Inspire-Creativity}
 
 \subsection{Differences in Scale}\label{Jon-McCaffrey:Architectural-Differences}
 Modern mobile devices are capable and remarkable devices.  However, they face much greater limitations than desktop systems in terms of cost, die size, power consumption, and heat dissipation.
 
- TODO better scale context, need to fill this out
+Power consumption is a major concern for mobile platforms that is much less pressingo n desktop, since mobile devices must run off batteries small enough to fit in the body of the device, and since a short battery life is frustrating and limiting to the user.  Mobile hardware itself is built to use less power through clock frequencies, smaller chips, different data formats, and limiting redundant and speculative work.  Display and network take a great deal of power, but OpenGL applications contribute to power consumption, especially through compute and through off-chip memory accesses required.
+
+Power consumption is a double-whammy, since power consumed by the processor, GPU, and memory is largely dissipated as heat.  Unlike desktop systems with active air cooling, good air circulation, and large heat sinks to radiate heat, mobile systems are usually passively cooled and have contrained bodies with little room for large sinks or raditators.  Excess heat generation is not only potentially damaging to components, it's also noticeable and bothersome to users of hand-held products.
+
+Die size and cost are also greatly different between mobile and desktop.  High-end desktop GPUs are some of the largest chips made, with over 3 billion transistors on recent models \cite{Walton10}.  This has implications on yield and hence cost.  The separate chip also means a separate package and mounting, and the expected cost increase.  In mobile however, the GPU is usually one component on an integrated \textit{System-on-a-Chip (SoC)}.
 
 \subsection{Differences in Rendering Architecture}\label{Jon-McCaffrey:differences-in-rendering-architecture}
 \index{tiling}
@@ -29,10 +31,7 @@ Tilers instead divide the framebuffer into tiles of pixels.  All draw commands a
 \index{Tile-Based Deferred Rendering}
 There is an additional group of tilers which use \textit{Tile-Based Deferred Rendering}, including the PowerVR family.  The idea is to rasterize all primitives in a tile before performing any fragment shadering.  This allows \textit{Hidden Surface Removal (HSR)} and depth-testing to be performed in a fast framebuffer cache before any fragment shading work is done.  Assuming opaque geometry, each pixel is then shaded and writted to the framebuffer exactly once.
 
-TODO cite this
-
-These architectures have different strengths and weaknesses we will consider, but it's important to note that the mobile GPU landscape is not homogenous.  Optimizations may benefit the different architectures very differently.
-
+These architectures have different strengths and weaknesses we will consider, but it's important to note that the mobile GPU landscape is not homogenous.  Optimizations may benefit the different architectures very differently, so it is important to at least test on multiple devices for cross-plattform releases.
 \subsection{Differences in Memory Architecture}\label{Jon-McCaffrey:differences-in-memory-architecture}
 
 On desktop systems, high-end GPUs are discrete devices which communicate with the rest of the system via a peripheral bus like \textit{PCIe}.  For good performance, this means that GPUs must include their own dedicated memory.  While this increases cost, it is an optimization opportunity since this memory can be optimized for graphics workloads.
@@ -42,17 +41,17 @@ For example, the Nvidia \textit{Fermi} architecture uses GDDR5 memory that is he
 \index{System-on-a-Chip}
 \index{Unified Memory Architecture}
 
-In mobile devices, on the other hand, the GPU is usually integrated into the same \textit{System-on-a-Chip (SoC)} as the CPU and other components, and to save cost, power, size, and complexity, shares the same RAM and memory interface.  This is known as an \textit{Unified Memory Architecture (UMA)}.  A common memory type might be the low-power LPDDR2, which has a 32-bit wide interface \cite{anandtech_lg_optimus}.  Not only is this memory general-purpose, the GPU now shares bandwidth with other parts of the system like the CPU, network, camera, multimedia, and display.   
+In mobile devices, on the other hand, the GPU is usually integrated into the same SoCas the CPU and other components, and to save cost, power, size, and complexity, shares the same RAM and memory interface.  This is known as an \textit{Unified Memory Architecture (UMA)}.  A common memory type might be the low-power LPDDR2, which has a 32-bit wide interface \cite{anandtech_lg_optimus}.  Not only is this memory general-purpose, the GPU now shares bandwidth with other parts of the system like the CPU, network, camera, multimedia, and display.   
 
 \index{bandwidth}
 
-There are some performance advantages to an unified memory architecture, besides the savings in cost and complexity.  With discrete GPU's the peripheral bus could become a bottleneck for transfers, especially with non-PCIe buses with asymmetric speeds \cite{Elhasson}.  With a UMA, OpenGL client and server data are in fact stored in the same RAM.  Even if it is not possible to directly access server data with \texttt{glMapBufferOES}, there are less performance cliffs lurking in transfers between OpenGL client and server data.
+There are some performance advantages to an unified memory architecture, besides the savings in cost and complexity.  With discrete GPU's the peripheral bus could become a bottleneck for transfers, especially with non-PCIe buses with asymmetric speeds \cite{Elhasson05}.  With a UMA, OpenGL client and server data are in fact stored in the same RAM.  Even if it is not possible to directly access server data with \texttt{glMapBufferOES}, there are less performance cliffs lurking in transfers between OpenGL client and server data.
 
 \index{Pixel Buffer Object}
 
 One limitation is that OpenGL ES does not yet have an extension for \textit{Pixel Buffer Objects (PBO)}, meaning that pixel data must be transferred synchronously.  This makes the comparatively cheap bandwidth between client and server data less useful, and also makes streaming texture assets more difficult.
 
-\section{Reducing Memory Bandwidth}\label{Jon-McCaffrey:differences-in-memory-architecture}
+\section{Reducing Memory Bandwidth}\label{Jon-McCaffrey:Reducing-Memory-Bandwidth}
 
 \index{bandwidth}
 
@@ -62,7 +61,7 @@ Besides limiting performance, memory accesses external to the GPU consume a grea
 
 TODO cite CPU/GPU read and write bandwidth numbers
 
-\subsection{Relative Display Sizes}\label{Jon-McCaffrey:differences-in-memory-architecture}
+\subsection{Relative Display Sizes}\label{Jon-McCaffrey:relative-display-sizes}
 
 \index{resolution}
 \index{display}
@@ -107,7 +106,7 @@ The memory bandwidth consumption of the final framebuffer doesn't end when the a
 
 Thus basic clear-fill-and-post operation consumes 564-752mb/s of bandwidth, so
 even basic operations consume a significant amount of memory bandwidth;
-anything interesting your application is doing only costs more bandwidth.  If a
+anything interesting our application is doing only costs more bandwidth.  If a
 32-bit framebuffer is used, this number will be even greater.  To put this in
 context, the ipad2 has been benchmarked at 2.3gb/s for stdlib writes
 \cite{anandtech_ipad2}.  Memory bandwidth is also a major power drain, making
@@ -138,11 +137,11 @@ bandwidth, increasing run-time performance.
 One complication is that there are multiple incompatible formats for texture
 compression supported via OpenGL ES2 extensions.  Example formats would be S3TC, available on Nvidia Tegra, and PVRTC, available on ImaginationTech PowerVR \cite{motorola_texture}.
 
-To support texture compression on multiple devices, your application must
+To support texture compression on multiple devices, our application must
 either package multiple versions of their assets and dynamically choose the
 correct ones, or perform the compression at run-time/install-time.  Performing
 the compression at run or install-time must be done carefully to not slow down
-your application, and gives up many of the benefits of improved loading-time
+our application, and gives up many of the benefits of improved loading-time
 and disk-space, as well as the internet bandwidth required for
 installation/download of the application on mobile devices.  S3TC has
 compressions ratios between 4:1 and 8:1 \cite{arb_texture_compresssion}.
@@ -156,9 +155,9 @@ Due to the limited compute and bandwidth available on mobile devices with respec
 
 \subsection{Overdraw and Blending}\label{Jon-McCaffrey-Overdraw-And-Blending}
 \index{overdraw}\index{blending}\index{IMR}\index{TBDR}
-Overdraw is when pixels that have previously been shaded are over-written by later fragments in a scene.  On non-tiled architectures, overdraw wastes fragment processing, since the previous computed pixel value is over-written and lost.  The additional framebuffer writes also waste bandwidth.
+Overdraw is when pixels that have previously been shaded are over-written by later fragments in a scene.  On non-tiled architectures, overdraw wastes fragment shading work, since the previous computed pixel value is over-written and lost.  The additional framebuffer writes for over-written pixels also waste bandwidth.
 
-On non-tiled architectures, this extra bandwidth consumption can limited by
+On non-TBDR architectures, this extra bandwidth consumption can limited by
 sorting and rendering geometry from front to back.  This is especially
 practical for static geometry which can be processed into a spatial data
 structure during export.  An additional heuristic for games is to render the
@@ -188,10 +187,10 @@ filtering, and tone-mapping.  Other applications such as photo-editing tools
 may use full-screen or large-area effects for composition, blending, distortion
 and filtering.
 
-While it allows for beautiful and creative effects, full-screen post-processing
-is an easy way to consume large amounts of bandwidth and fragment processing.
-Such effects should be carefully weighed for their worth, and are prime
-candidates for optimization.  
+Full-screen post-processing is a powerful tool to create effects but it is an
+easy way to consume large amounts of bandwidth and fragment processing.  Such
+effects should be carefully weighed for their worth, and are prime candidates
+for optimization.  
 
 A full-screen pass implies at least a read and write of the framebuffer at full
 resolution, which at 16-bit color and a 1024x768 resolution means 188MB/s
@@ -205,13 +204,13 @@ appending post-processing effects.
 
 If the additional pass cannot be eliminated, then all full-screen post effects can be merged into a single pass.  This saves redundant round-trips to framebuffer memory.
 
-TODO numbers here
+TODO benchmark numbers showing slowdown of additional passes
 
 \index{deferred shading}
 
 One limitation of OpenGL ES 2.0 is the poor support for \textit{Multiple Render
 Targets (MRT)}, which allow multiple output buffers from a fragment shader.
-This makes deferred shading impractical, since running a full pass of the scene
+This makes deferred shading impractical, since running a fulwl pass of the scene
 for each \textit{geometry buffer} is too expensive, but only 1 geometry buffer
 can be rendered at a time.  Even if MRTs were available however, the additional
 bandwidth cost of reading and writing multiple full-screen buffers would
@@ -258,7 +257,7 @@ However, fragment shaders with multiple texture fetches may already be bound by 
 
 \subsection{Vertex vs. Fragment Work}\label{Jon-McCaffrey-Vertex-vs-Fragment-Work}
 
-For lighting and shading the primary objects in your scene, traditional IMR wisdom states that moving computations like lighting, specularity, and normalization from per-fragment to per-vertex and then interpolating can save performance at the cost of image quality, and this is still very true for IMR.
+For lighting and shading the primary objects in our scene, traditional IMR wisdom states that moving computations like lighting, specularity, and normalization from per-fragment to per-vertex and then interpolating can save performance at the cost of image quality, and this is still very true for IMR.
 
 However, for TBDRs, this performance wisdom is more dubious.  This is because mobile devices do have smaller screens with fewer pixels to be shaded that desktop, and because TBDRs must perform all vertex computations for each tile \cite{apple_vertex}.  TBDRs are more likely to be vertex-bound, and Unity recommends 40k or less vertices on recent iOS devices, which use PowerVR GPUs \cite{unity_graphics_perf}.
 
@@ -280,6 +279,7 @@ Vertex processing is more of a bandwidth drain on TBDRs, since the attributes pr
 
 \section{Conclusion}\label{Jon-McCaffrey-Conclusion}
 
+TODO Conclusion not complete
 
 \bibliographystyle{akpbib}
 \bibliography{YourBib}
