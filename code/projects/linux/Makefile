@@ -1,6 +1,6 @@
 CC=gcc
 
-OFLAGS=
+OFLAGS= -O2
 
 CFLAGS=${INCLUDES} \
        ${OFLAGS} \
@@ -16,12 +16,15 @@ LINUX_PLATFORM_SRC=${LINUX_PLATFORM_PREFIX}/time.c \
 		   ${LINUX_PLATFORM_PREFIX}/gl.c
 
 COMMON_PREFIX=../../src/common
-COMMON_SRC=${COMMON_PREFIX}/testrunner.c
+COMMON_SRC=${COMMON_PREFIX}/testrunner.c \
+	   ${COMMON_PREFIX}/gl.c
 
 TESTS_PREFIX=../../src/tests
 TESTS_SRC=${TESTS_PREFIX}/trival_pass.c \
+	  ${TESTS_PREFIX}/vertex_lighting.c \
 	  ${TESTS_PREFIX}/triangle_throughput.c \
 	  ${TESTS_PREFIX}/cpu_writes.c \
+	  ${TESTS_PREFIX}/cpu_read_accum.c \
 	  ${TESTS_PREFIX}/clears.c \
 	  ${TESTS_PREFIX}/test_registry.c 
 
