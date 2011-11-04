@@ -48,7 +48,7 @@ static void ClearAndWait(float r, float g, float b) {
     glClear(GL_COLOR_BUFFER_BIT);
     //Let's hope driver writers are honest here
     //If not, might have to start doing single-pixel readpixels
-    glFinish();
+    glFlush();
 }
 
 static TestError warmup(const TestData* data)

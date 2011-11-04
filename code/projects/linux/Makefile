@@ -1,6 +1,7 @@
 CC=gcc
 
-OFLAGS= -O2
+#OFLAGS= -O2
+OFLAGS= -O1 -g
 
 CFLAGS=${INCLUDES} \
        ${OFLAGS} \

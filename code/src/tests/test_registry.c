@@ -8,8 +8,8 @@ extern const TestCase cpu_read_accum;
 extern const TestCase clears;
 
 const TestCase* suite [] = {
-    &trivial_pass,
     &vertex_lighting,
+    &trivial_pass,
     &triangle_throughput,
     &cpu_writes,
     &cpu_read_accum,
