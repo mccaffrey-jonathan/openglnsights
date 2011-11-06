@@ -2,13 +2,11 @@
 #include "platform/gl.h"
 #include "common/gl.h"
 
-//#define WIDTH 1024
-//#define HEIGHT 1024
-#define WIDTH 10
-#define HEIGHT 10 
+#define WIDTH 1024
+#define HEIGHT 1024
 #define BYTES_PER_PIXEL 2
-#define VERTEX_WIDTH 250
-#define VERTEX_HEIGHT 250
+#define VERTEX_WIDTH 160
+#define VERTEX_HEIGHT 160
 
 #define WARMUP_ITERS 10
 #define TEST_ITERS (10 * 1024LL) / BYTES_PER_PIXEL
@@ -23,6 +21,7 @@ typedef struct {
     GLint uMVPMatrix;
     GLint lightPos;
     GLint matDiffuse;
+    GLint texture1;
 } SceneUniformLocs;
 
 typedef struct {
@@ -55,6 +54,7 @@ typedef struct {
     SceneGeometry geo;
     SceneAttribLocs sceneAttribLocs;
     SceneUniformLocs sceneUniformLocs;
+    GLuint tex;
 } Private;
 
 // from http://code.google.com/p/androidshaders/source/browse/res/raw/gouraud_vs.txt
@@ -119,8 +119,9 @@ GLchar frg [] =
 "varying vec4 color;\n"
 "\n"
 "void main() {\n"
-"//    gl_FragColor = color*texture2D(texture1, tCoord);\n"
-"    gl_FragColor = 0.000*color+vec4(0.0, 0.3, 1.0, 1.0);\n"
+"    gl_FragColor = color*texture2D(texture1, tCoord);\n"
+//"    gl_FragColor = 0.00001*color*texture2D(texture1, tCoord)+vec4(0.0, 0.3, 1.0, 1.0);\n"
+//"    gl_FragColor = 0.001*tCoord.xyxy+0.001*color+vec4(0.0, 0.3, 1.0, 1.0);\n"
 "}\n"
 ;
 
@@ -181,13 +182,13 @@ static TestError bufferDataSceneVertexGrid(int width, int height) {
     //Setup indexed triangles
     for (int i = 0; i < (width-1); i++) {
         for (int j = 0; j < (height-1); j++) {
-           indices[6*(i*height + j) + 0] = i*width + j;
-           indices[6*(i*height + j) + 1] = i*height + j + 1;
-           indices[6*(i*height + j) + 2] = (i+1)*height + j;
+           indices[6*(i*(height-1) + j) + 0] = i*height + j;
+           indices[6*(i*(height-1) + j) + 1] = i*height + j + 1;
+           indices[6*(i*(height-1) + j) + 2] = (i+1)*height + j;
 
-           indices[6*(i*height + j) + 3] = i*height + j + 1;
-           indices[6*(i*height + j) + 5] = (i+1)*height + j + 1;
-           indices[6*(i*height + j) + 4] = (i+1)*height + j;
+           indices[6*(i*(height-1) + j) + 3] = i*height + j + 1;
+           indices[6*(i*(height-1) + j) + 4] = (i+1)*height + j + 1;
+           indices[6*(i*(height-1) + j) + 5] = (i+1)*height + j;
         }
     }
 
@@ -201,8 +202,6 @@ static TestError bufferDataSceneVertexGrid(int width, int height) {
 
     return SUCCESS;
 }
-
-
 
 static TestError CompileSceneShaders(ShaderPair* priv)
 {
@@ -235,6 +234,35 @@ static TestError CompileSceneShaders(ShaderPair* priv)
     return SUCCESS;
 }
 
+static void DebugDumpAttribsAndUniforms(GLuint prg)
+{
+    int total = -1;
+    glGetProgramiv( prg, GL_ACTIVE_ATTRIBUTES, &total ); 
+    for(int i=0; i<total; ++i)  {
+        int name_len=-1, num=-1;
+        GLenum type = GL_ZERO;
+        char name[100];
+        glGetActiveAttrib( prg, (GLuint)i, sizeof(name)-6,
+                &name_len, &num, &type, name );
+        name[name_len] = 0;
+        GLuint location = glGetAttribLocation( prg, name );
+        fprintf(stderr, "%d %s %u\n", i, name, location);
+    }
+
+    glGetProgramiv( prg, GL_ACTIVE_UNIFORMS, &total ); 
+    for(int i=0; i<total; ++i)  {
+        int name_len=-1, num=-1;
+        GLenum type = GL_ZERO;
+        char name[100];
+        glGetActiveUniform( prg, (GLuint)i, sizeof(name)-6,
+                &name_len, &num, &type, name );
+        name[name_len] = 0;
+        GLuint location = glGetUniformLocation( prg, name );
+        fprintf(stderr, "%d %s %u\n", i, name, location);
+    }
+
+}
+
 #define ATTRIB(PRG, X) .X = glGetAttribLocation(PRG, #X)
 #define UNIFOR(PRG, X) .X = glGetUniformLocation(PRG, #X)
 
@@ -252,11 +280,8 @@ static TestError GetSceneUniformAndAttribLocs(GLuint prg,
         UNIFOR(prg, uMVPMatrix),
         UNIFOR(prg, lightPos),
         UNIFOR(prg, matDiffuse),
+        UNIFOR(prg, texture1),
     };
-    fprintf(stderr, "%d %d %d",
-            attribs->aPosition,
-            attribs->aNormal,
-            attribs->textureCoord);
 
     if (attribs->aPosition == -1 ||
             attribs->aNormal == -1 ||
@@ -266,7 +291,8 @@ static TestError GetSceneUniformAndAttribLocs(GLuint prg,
 
     if (uniforms->uMVPMatrix == -1 ||
             uniforms->lightPos == -1 ||
-            uniforms->matDiffuse == -1) {
+            uniforms->matDiffuse == -1 ||
+            uniforms->texture1 == -1) {
         return INVALID_UNIFORM;
     }
 
@@ -280,36 +306,42 @@ static TestError GetSceneUniformAndAttribLocs(GLuint prg,
 
 static TestError BindSceneShader(
         GLuint prg,
+        GLuint tex,
         SceneAttribLocs* attribs,
         SceneUniformLocs* uniforms)
 {
+
     glUseProgram(prg);
+    glEnableVertexAttribArray(attribs->aPosition);
     glVertexAttribPointer(attribs->aPosition,
             SIZEOF_FIELD(SceneVertex, pos)/sizeof(GL_FLOAT),
             GL_FLOAT,
             GL_FALSE,
             sizeof(SceneVertex),
             0);
+    glEnableVertexAttribArray(attribs->aNormal);
     glVertexAttribPointer(attribs->aNormal,
-            SIZEOF_FIELD(SceneVertex, nrm),
+            SIZEOF_FIELD(SceneVertex, nrm)/sizeof(GL_FLOAT),
             GL_FLOAT,
             GL_FALSE,
             sizeof(SceneVertex),
             (void*)SIZEOF_FIELD(SceneVertex, pos));
+    glEnableVertexAttribArray(attribs->textureCoord);
     glVertexAttribPointer(attribs->textureCoord,
-            SIZEOF_FIELD(SceneVertex, tex),
+            SIZEOF_FIELD(SceneVertex, tex)/sizeof(GL_FLOAT),
             GL_FLOAT,
             GL_FALSE,
             sizeof(SceneVertex),
             (void*)(SIZEOF_FIELD(SceneVertex, pos) +
                 SIZEOF_FIELD(SceneVertex, nrm)));
-    
+
     glUniformMatrix4fv(uniforms->uMVPMatrix,
             1,
             GL_FALSE,
             IDENTITY_MAT4);
     glUniform4fv(uniforms->lightPos, 1, LIGHT_POS);
     glUniform4fv(uniforms->matDiffuse, 1, MAT_DIFFUSE);
+    glUniform1i(uniforms->texture1, tex);
     return SUCCESS;
 }
 
@@ -328,18 +360,15 @@ static TestError GenAndBindBuffers(SceneGeometry* geo) {
 
 static TestError setup(TestData* data)
 {
-    fprintf(stderr, "in setyup\n");
     Private* priv = malloc(sizeof(Private));
     if (!priv)
         return OUT_OF_MEMORY;
     data->priv = priv;
     TestError err = SUCCESS;
-    fprintf(stderr, "Alloced privat\n");
 
     err = SetupDepthAndColorFbo(&priv->fb);
     if (err != SUCCESS)
         return err;
-    fprintf(stderr, "fbo setup\n");
 
     err = checkAndReportFramebufferStatus();
     if (err != SUCCESS)
@@ -348,7 +377,6 @@ static TestError setup(TestData* data)
     err = CompileSceneShaders(&priv->shads);
     if (err != SUCCESS)
         return err;
-    fprintf(stderr, "shaders compiled\n");
 
     err = GetSceneUniformAndAttribLocs(priv->shads.prg,
             &priv->sceneAttribLocs,
@@ -356,27 +384,37 @@ static TestError setup(TestData* data)
     if (err != SUCCESS)
         return err;
 
-    fprintf(stderr, "get uniform and attrib locs\n");
-
     err = GenAndBindBuffers(&priv->geo);
     if (err != SUCCESS)
         return err;
-
-    fprintf(stderr, "genandbindbuffers\n");
 
     priv->geo.indexCnt = (VERTEX_HEIGHT-1)*(VERTEX_WIDTH-1)*6;
     err = bufferDataSceneVertexGrid(VERTEX_WIDTH, VERTEX_HEIGHT); 
     if (err != SUCCESS)
         return err;
 
-    fprintf(stderr, "bufferdatascenevertexgrid\n");
-
     glEnable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glDepthFunc(GL_LEQUAL);
     glClearColor(1.0f, 0.0f, 0.5f, 1.0f);
     glClearDepth(1.0f);
     glViewport(0, 0, WIDTH, HEIGHT);
-    
-    fprintf(stderr, "%d", glGetError());
+
+    glGenTextures(1, &priv->tex);
+    glBindTexture(GL_TEXTURE_2D, priv->tex);
+    GLuint* texdata = malloc(WIDTH*HEIGHT*sizeof(GLuint));
+    if (!texdata)
+        return OUT_OF_MEMORY;
+    for (int i = 0; i < WIDTH*HEIGHT; i++) {
+        GLuint val = 0xFFFFFFFF; //White?
+        texdata[i] = val;
+    }
+    glTexImage2D(GL_TEXTURE_2D,
+            0, GL_RGBA,
+            WIDTH, HEIGHT, 0,
+            GL_RGBA, GL_UNSIGNED_BYTE, texdata);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    free(texdata);
 
     return SUCCESS;
 }
@@ -395,6 +433,7 @@ static void DrawFrame(Private* priv)
 {
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
     BindSceneShader(priv->shads.prg,
+            priv->tex,
             &priv->sceneAttribLocs,
             &priv->sceneUniformLocs);
     DrawScene(&priv->geo);
@@ -421,11 +460,40 @@ static void DebugDumpPixels()
             GL_RGB,
             GL_FLOAT,
             pixs);
-    for (int i = 0; i < WIDTH*HEIGHT*3; i+=3) {
-        fprintf(stderr, "%d %f %f %f\n", i/3, 
-                pixs[i+0], pixs[i+1],pixs[i+2]);
+    for (int i = 0; i < WIDTH; i+=128) {
+        for (int j = 0; j < HEIGHT; j+=128) {
+            int ind = 3*(i*HEIGHT+j);
+            fprintf(stderr, "%d %f %f %f\n", ind/3, 
+                    pixs[ind+0], pixs[ind+1],pixs[ind+2]);
+        }
     }
     free(pixs);
+}
+
+static void DebugDumpVertices()
+{
+    SceneVertex* verts = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY);
+    for (int i = 0; i < VERTEX_HEIGHT*VERTEX_WIDTH; i++) {
+        SceneVertex* vtx = verts + i;
+        fprintf(stderr, "idx: %d pos: %f %f %f nrm: %f %f %f tex %f %f\n",
+                i,
+                vtx->pos[0], vtx->pos[1], vtx->pos[2],
+                vtx->nrm[0], vtx->nrm[1], vtx->nrm[2],
+                vtx->tex[0], vtx->tex[1]);
+    }
+    glUnmapBuffer(GL_ARRAY_BUFFER);
+}
+
+static void DebugDumpIndices()
+{
+    uint32_t* verts = glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_READ_ONLY);
+    if (!verts)
+        fprintf(stderr, "Could not map index buffer\n");
+
+    for (int i = 0; i < 6*(VERTEX_HEIGHT-1)*(VERTEX_WIDTH-1); i++) {
+        fprintf(stderr, "idx: %d index: %u\n", i, verts[i]);
+    }
+    glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
 }
 
 static TestError run(TestData* data)
@@ -434,7 +502,6 @@ static TestError run(TestData* data)
     for (int i = 0; i < TEST_ITERS; i++) {
        DrawFrame(priv);
     }
-    DebugDumpPixels();
     return SUCCESS;
 }
 
