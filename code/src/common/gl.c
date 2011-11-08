@@ -70,3 +70,79 @@ TestError checkAndReportLinkStatus(GLuint name)
     return SHADER_LINK_FAILED;
 }
 
+TestError CompileShaders(ShaderPair* priv,
+        const GLchar* vtxSrc,
+        int vtxLen,
+        const GLchar* frgSrc,
+        int frgLen)
+{
+    priv->vs = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(priv->vs, 1, &vtxSrc, &vtxLen);
+    glCompileShader(priv->vs);
+    TestError err = checkAndReportCompilationStatus(priv->vs);
+    if (err != SUCCESS)
+        return err;
+
+    priv->fs = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(priv->fs, 1, &frgSrc, &frgLen);
+    glCompileShader(priv->fs);
+    err = checkAndReportCompilationStatus(priv->fs);
+    if (err != SUCCESS)
+        return err;
+
+    priv->prg = glCreateProgram();
+    glAttachShader(priv->prg, priv->vs);
+    glAttachShader(priv->prg, priv->fs);
+    glLinkProgram(priv->prg);
+    err = checkAndReportLinkStatus(priv->prg);
+    if (err != SUCCESS)
+        return err;
+
+    return SUCCESS;
+}
+
+TestError GenAndBindBuffers(Geometry* geo) {
+    glGenBuffers(1, &geo->vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, 
+            geo->vbo);
+
+    glGenBuffers(1, &geo->ibo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 
+            geo->ibo);
+    return SUCCESS;
+}
+
+TestError BindBuffers(Geometry* geo) {
+    glBindBuffer(GL_ARRAY_BUFFER, 
+            geo->vbo);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 
+            geo->ibo);
+    return SUCCESS;
+}
+
+void DrawGeo(Geometry* buffs)
+{
+    glBindBuffer(GL_ARRAY_BUFFER, buffs->vbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffs->ibo);
+    glDrawElements(GL_TRIANGLES,
+            buffs->indexCnt,
+            GL_UNSIGNED_INT,
+            0);
+}
+
+TestError DeleteGeometry(Geometry* geo) 
+{
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glDeleteBuffers(1, &geo->vbo);
+    glDeleteBuffers(1, &geo->ibo);
+    return SUCCESS;
+}
+
+TestError DeleteShaderPair(ShaderPair* shads) {
+    glDeleteShader(shads->vs);
+    glDeleteShader(shads->fs);
+    glDeleteProgram(shads->prg);
+    return SUCCESS;
+}

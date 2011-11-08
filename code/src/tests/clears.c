@@ -74,8 +74,8 @@ static TestError run(TestData* data)
 
 static TestError report(const TestData* data, TestReport* out)
 {
-    out->unit = BYTES;
-    out->count = TEST_ITERS*WIDTH*HEIGHT*BYTES_PER_PIXEL;
+    out->unit = PIXELS;
+    out->count = TEST_ITERS*WIDTH*HEIGHT;
     return SUCCESS;
 }
 

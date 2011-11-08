@@ -18,11 +18,14 @@ LINUX_PLATFORM_SRC=${LINUX_PLATFORM_PREFIX}/time.c \
 
 COMMON_PREFIX=../../src/common
 COMMON_SRC=${COMMON_PREFIX}/testrunner.c \
+	   ${COMMON_PREFIX}/scene_setup.c \
+	   ${COMMON_PREFIX}/post_setup.c \
 	   ${COMMON_PREFIX}/gl.c
 
 TESTS_PREFIX=../../src/tests
 TESTS_SRC=${TESTS_PREFIX}/trival_pass.c \
 	  ${TESTS_PREFIX}/vertex_lighting.c \
+	  ${TESTS_PREFIX}/five_tap_post.c \
 	  ${TESTS_PREFIX}/triangle_throughput.c \
 	  ${TESTS_PREFIX}/cpu_writes.c \
 	  ${TESTS_PREFIX}/cpu_read_accum.c \
@@ -33,7 +36,6 @@ LIBS = -L/usr/lib -lGLEW -lglut
 OUT=out/openglinsights_mccaffrey
 
 INCLUDES=-I../../src
-
 
 all:
 	${CC} \
