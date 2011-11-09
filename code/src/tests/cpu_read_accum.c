@@ -4,7 +4,7 @@
 
 #define BUFF_SIZE (10 * 1024 * 1024) //To defeat L2 caches
 #define WARMUP_ITERS 10
-#define TEST_ITERS 1024LL
+#define TEST_ITERS (1024LL/10)
 
 typedef struct {
     void* buff;

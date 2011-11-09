@@ -3,6 +3,7 @@
 #include "common/gl.h"
 #include "common/scene_setup.h"
 #include "common/post_setup.h"
+#include <stdlib.h>
 
 static GLchar vtx [] =
 "precision mediump float;\n"
@@ -34,6 +35,18 @@ static GLchar frg [] =
 "       texture2D(texture1, tCoord + vec2(-0.01, 0.0)).xyz),1.0) ;\n"
 "}\n" ;
 
+static GLchar frgShort [] =
+"precision mediump float;\n"
+"\n"
+"uniform sampler2D texture1; // color texture\n"
+"\n"
+"varying vec2 tCoord;\n"
+"\n"
+"void main() {\n"
+"    gl_FragColor = vec4(vec3(0.0,0.5,0.0) + "//So we can see that post happened
+"       texture2D(texture1, tCoord).xyz,1.0) ;\n"
+"}\n" ;
+
 TestError SetupColorFbo(PostFramebuffer* fb)
 {
     glGenFramebuffers(1, &fb->fbo);
@@ -47,8 +60,6 @@ TestError SetupColorFbo(PostFramebuffer* fb)
             GL_RENDERBUFFER,
             fb->color);
     glBindFramebuffer(GL_FRAMEBUFFER, fb->fbo);
-    glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    glReadBuffer(GL_COLOR_ATTACHMENT0);
     TestError err = checkAndReportFramebufferStatus();
     if (err != SUCCESS)
         return err;
@@ -110,6 +121,15 @@ TestError CompilePostShaders(ShaderPair* priv)
             sizeof(vtx),
             frg,
             sizeof(frg));
+}
+
+TestError CompileSimplePostShaders(ShaderPair* priv)
+{
+    return CompileShaders(priv,
+            vtx,
+            sizeof(vtx),
+            frgShort,
+            sizeof(frgShort));
 }
 
 #define ATTRIB(PRG, X) .X = glGetAttribLocation(PRG, #X)

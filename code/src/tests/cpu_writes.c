@@ -1,10 +1,9 @@
 #include "common/test.h"
+#include "common/scene_setup.h"
 #include <string.h>
 #include <stdlib.h>
 
-#define BUFF_SIZE (10 * 1024 * 1024) //To defeat L2 caches
-#define WARMUP_ITERS 10
-#define TEST_ITERS 1024LL
+#define BUFF_SIZE (BYTES_PER_PIXEL * 1024 * 1024) 
 
 typedef struct {
     void* buff;

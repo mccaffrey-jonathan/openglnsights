@@ -14,6 +14,11 @@ static void PrintResult(const TestCase* test,
                 "SUCCESS",
                 res->report.count,
                 res->elapsed);
+        LOGI("%s %s %lld in %lld ms",
+                test->name,
+                "SUCCESS",
+                res->report.count,
+                res->elapsed);
     } else {
         fprintf(output, "%s", "TODO, improve error reporting");
     }
@@ -81,4 +86,5 @@ void RunAllTests(FILE* output)
        TestResult res = RunTest(suite[i]);
        PrintResult(suite[i], &res, output);
     }
+    fflush(output);
 }

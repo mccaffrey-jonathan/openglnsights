@@ -71,7 +71,7 @@ static TestError SetupPost(PostPass* priv)
     if (err != SUCCESS)
         return err;
 
-    err = CompilePostShaders(&priv->shads);
+    err = CompileSimplePostShaders(&priv->shads);
     if (err != SUCCESS)
         return err;
 
@@ -193,9 +193,9 @@ static TestError teardown(TestData* data)
     return SUCCESS;
 }
 
-const TestCase five_tap_post =
+const TestCase one_tap_post =
 {
-    .name = "five_tap_post",
+    .name = "one_tap_post",
     .setup = setup,
     .warmup = warmup,
     .run = run,

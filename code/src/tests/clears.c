@@ -1,13 +1,8 @@
 #include "common/test.h"
+#include "common/scene_setup.h"
 #include "platform/gl.h"
 #include "common/gl.h"
-
-#define WIDTH 1024
-#define HEIGHT 1024
-#define BYTES_PER_PIXEL 2
-
-#define WARMUP_ITERS 10
-#define TEST_ITERS ((10 * 1024LL) / BYTES_PER_PIXEL)
+#include <stdlib.h>
 
 typedef struct {
     GLuint fbo;
@@ -48,7 +43,7 @@ static void ClearAndWait(float r, float g, float b) {
     glClear(GL_COLOR_BUFFER_BIT);
     //Let's hope driver writers are honest here
     //If not, might have to start doing single-pixel readpixels
-    glFlush();
+    glFinish();
 }
 
 static TestError warmup(const TestData* data)

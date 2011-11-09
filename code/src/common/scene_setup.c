@@ -3,6 +3,7 @@
 #include "common/test.h"
 #include "platform/gl.h"
 #include "common/gl.h"
+#include <stdlib.h>
 
 // from http://code.google.com/p/androidshaders/source/browse/res/raw/gouraud_vs.txt
 // Vertex shader Gouraud Shading - Per-vertex lighting
@@ -93,8 +94,6 @@ TestError SetupDepthAndColorFbo(SceneFramebuffer* fb)
             GL_RENDERBUFFER,
             fb->depth);
     glBindFramebuffer(GL_FRAMEBUFFER, fb->fbo);
-    glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    glReadBuffer(GL_COLOR_ATTACHMENT0);
     TestError err = checkAndReportFramebufferStatus();
     if (err != SUCCESS)
         return err;
@@ -129,8 +128,6 @@ TestError SetupDepthRBOAndColorTex(SceneFramebuffer* fb)
             GL_RENDERBUFFER,
             fb->depth);
     glBindFramebuffer(GL_FRAMEBUFFER, fb->fbo);
-    glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    glReadBuffer(GL_COLOR_ATTACHMENT0);
     TestError err = checkAndReportFramebufferStatus();
     if (err != SUCCESS)
         return err;
@@ -329,9 +326,9 @@ TestError BindSceneShader(
             IDENTITY_MAT4);
     glUniform4fv(uniforms->lightPos, 1, LIGHT_POS);
     glUniform4fv(uniforms->matDiffuse, 1, MAT_DIFFUSE);
-    glActiveTexture(GL_TEXTURE0);
+    glActiveTexture(GL_TEXTURE0 + 0);
     glBindTexture(GL_TEXTURE_2D, tex);
-    glUniform1i(uniforms->texture1, GL_TEXTURE_2D);
+    glUniform1i(uniforms->texture1, 0);
     return SUCCESS;
 }
 
@@ -384,7 +381,6 @@ TestError DeleteSceneFramebufferWithTex(SceneFramebuffer* fb)
 void DebugDumpPixels()
 {
     GLfloat* pixs = malloc(sizeof(GLfloat)*4*WIDTH*HEIGHT);
-    glReadBuffer(GL_COLOR_ATTACHMENT0);
     glReadPixels(0, 0,
             WIDTH,
             HEIGHT,
@@ -401,47 +397,47 @@ void DebugDumpPixels()
     free(pixs);
 }
 
+//glGetTexImage not defined in base OES
 void DebugDumpTexture(GLuint tex, int width, int height)
 {
-
-    GLfloat* pixs = malloc(sizeof(GLfloat)*4*WIDTH*HEIGHT);
-    glBindTexture(GL_TEXTURE_2D, tex);
-    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB,
-            GL_FLOAT, pixs);
-    for (int i = 0; i < width; i+=1) {
-        for (int j = 0; j < height; j+=1) {
-            int ind = 3*(i*height+j);
-            fprintf(stderr, "%d %f %f %f\n", ind/3, 
-                    pixs[ind+0], pixs[ind+1],pixs[ind+2]);
-        }
-    }
-    free(pixs);
-
-
+//    GLfloat* pixs = malloc(sizeof(GLfloat)*4*WIDTH*HEIGHT);
+//    glBindTexture(GL_TEXTURE_2D, tex);
+//    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB,
+//            GL_FLOAT, pixs);
+//    for (int i = 0; i < width; i+=1) {
+//        for (int j = 0; j < height; j+=1) {
+//            int ind = 3*(i*height+j);
+//            fprintf(stderr, "%d %f %f %f\n", ind/3, 
+//                    pixs[ind+0], pixs[ind+1],pixs[ind+2]);
+//        }
+//    }
+//    free(pixs);
 }
 
+//Not defined in base OES
 void DebugDumpVertices()
 {
-    SceneVertex* verts = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY);
-    for (int i = 0; i < SCENE_VERTEX_HEIGHT*SCENE_VERTEX_WIDTH; i++) {
-        SceneVertex* vtx = verts + i;
-        fprintf(stderr, "idx: %d pos: %f %f %f nrm: %f %f %f tex %f %f\n",
-                i,
-                vtx->pos[0], vtx->pos[1], vtx->pos[2],
-                vtx->nrm[0], vtx->nrm[1], vtx->nrm[2],
-                vtx->tex[0], vtx->tex[1]);
-    }
-    glUnmapBuffer(GL_ARRAY_BUFFER);
+//    SceneVertex* verts = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY);
+//    for (int i = 0; i < SCENE_VERTEX_HEIGHT*SCENE_VERTEX_WIDTH; i++) {
+//        SceneVertex* vtx = verts + i;
+//        fprintf(stderr, "idx: %d pos: %f %f %f nrm: %f %f %f tex %f %f\n",
+//                i,
+//                vtx->pos[0], vtx->pos[1], vtx->pos[2],
+//                vtx->nrm[0], vtx->nrm[1], vtx->nrm[2],
+//                vtx->tex[0], vtx->tex[1]);
+//    }
+//    glUnmapBuffer(GL_ARRAY_BUFFER);
 }
 
+//MapBuffer undefined in OES
 void DebugDumpIndices()
 {
-    uint32_t* verts = glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_READ_ONLY);
-    if (!verts)
-        fprintf(stderr, "Could not map index buffer\n");
-
-    for (int i = 0; i < 6*(SCENE_VERTEX_HEIGHT-1)*(SCENE_VERTEX_WIDTH-1); i++) {
-        fprintf(stderr, "idx: %d index: %u\n", i, verts[i]);
-    }
-    glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+//    uint32_t* verts = glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_READ_ONLY);
+//    if (!verts)
+//        fprintf(stderr, "Could not map index buffer\n");
+//
+//    for (int i = 0; i < 6*(SCENE_VERTEX_HEIGHT-1)*(SCENE_VERTEX_WIDTH-1); i++) {
+//        fprintf(stderr, "idx: %d index: %u\n", i, verts[i]);
+//    }
+//    glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
 }

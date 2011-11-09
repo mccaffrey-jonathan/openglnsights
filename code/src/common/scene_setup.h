@@ -4,16 +4,19 @@
 #include "platform/gl.h"
 #include "common/gl.h"
 
+//#define WIDTH 1024
+//#define HEIGHT 1024
 #define WIDTH 1024
 #define HEIGHT 1024
-//#define WIDTH 10
-//#define HEIGHT 10
-#define SCENE_VERTEX_WIDTH 160
-#define SCENE_VERTEX_HEIGHT 160
+//#define SCENE_VERTEX_WIDTH 160
+//#define SCENE_VERTEX_HEIGHT 160
+#define SCENE_VERTEX_WIDTH 140
+#define SCENE_VERTEX_HEIGHT 140
 
 #define BYTES_PER_PIXEL 2
 #define WARMUP_ITERS 10
-#define TEST_ITERS (10 * 1024LL) / BYTES_PER_PIXEL
+//#define TEST_ITERS (1024LL) / BYTES_PER_PIXEL
+#define TEST_ITERS 500
 
 typedef struct {
     GLint aPosition;

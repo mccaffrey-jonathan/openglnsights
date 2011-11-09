@@ -1,7 +1,7 @@
 CC=gcc
 
-#OFLAGS= -O2
-OFLAGS= -O1 -g
+OFLAGS= -O2
+#OFLAGS= -O1 -g
 
 CFLAGS=${INCLUDES} \
        ${OFLAGS} \
@@ -26,6 +26,7 @@ TESTS_PREFIX=../../src/tests
 TESTS_SRC=${TESTS_PREFIX}/trival_pass.c \
 	  ${TESTS_PREFIX}/vertex_lighting.c \
 	  ${TESTS_PREFIX}/five_tap_post.c \
+	  ${TESTS_PREFIX}/one_tap_post.c \
 	  ${TESTS_PREFIX}/triangle_throughput.c \
 	  ${TESTS_PREFIX}/cpu_writes.c \
 	  ${TESTS_PREFIX}/cpu_read_accum.c \

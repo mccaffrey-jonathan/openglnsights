@@ -1,6 +1,7 @@
 #include "common/test.h"
 #include "platform/gl.h"
 #include "common/gl.h"
+#include <stdlib.h>
 
 typedef struct {
     GLuint fbo;

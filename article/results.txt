@@ -1,0 +1,18 @@
+Droid X
+11-09 04:09:16.521  4003  4011 I libgl2jni: trivial_pass: SUCCESS 0 in 0 ms
+11-09 04:09:16.521  4003  4011 I libgl2jni: one_tap_post: SUCCESS 524288000 in 97843 ms
+11-09 04:09:16.521  4003  4011 I libgl2jni: five_tap_post: SUCCESS 524288000 in 91925 ms
+11-09 04:09:16.521  4003  4011 I libgl2jni: vertex_lighting: SUCCESS 524288000 in 2239 ms
+11-09 04:09:16.521  4003  4011 I libgl2jni: clears: SUCCESS 524288000 in 143 ms
+11-09 04:09:16.521  4003  4011 I libgl2jni: cpu_writes: SUCCESS 1048576000 in 699 ms
+11-09 04:09:16.521  4003  4011 I libgl2jni: cpu_read_accum: SUCCESS 1069547520 in 3442 ms
+11-09 04:09:16.529  4003  4011 I libgl2jni: Test suite complete
+
+Dell Inspiron 520 (GeForce 8400M GS, 1.8GHz Intel Core 2 Duo)
+one_tap_post: SUCCESS 524288000 in 3758 msone_tap_post SUCCESS 524288000 in 3758 ms
+five_tap_post: SUCCESS 524288000 in 4354 msfive_tap_post SUCCESS 524288000 in 4354 ms
+vertex_lighting: SUCCESS 524288000 in 2269 msvertex_lighting SUCCESS 524288000 in 2269 ms
+clears: SUCCESS 524288000 in 273 msclears SUCCESS 524288000 in 273 ms
+cpu_writes: SUCCESS 1048576000 in 218 mscpu_writes SUCCESS 1048576000 in 218 ms
+cpu_read_accum: SUCCESS 1069547520 in 313 mscpu_read_accum SUCCESS 1069547520 in 313 ms
+

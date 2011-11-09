@@ -1,6 +1,7 @@
 #include "common/gl.h"
 
 #include "platform/gl.h"
+#include <stdlib.h>
 
 TestError checkAndReportFramebufferStatus() {
 //from http://stackoverflow.com/questions/5993634/using-gles-2-0-framebuffer-fbo-and-stencil-in-android-native-code-ndk
@@ -11,19 +12,19 @@ TestError checkAndReportFramebufferStatus() {
             return SUCCESS;
 
         case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT: 
-            fprintf(stderr, "FBO GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT  %x\n", status); 
+            LOGW("FBO GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT  %x\n", status); 
             return INIT_FAILED;
 
         case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
-            fprintf(stderr, "FBO FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT  %x\n", status); 
+            LOGW("FBO FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT  %x\n", status); 
             return INIT_FAILED;
 
         case GL_FRAMEBUFFER_UNSUPPORTED: 
-            fprintf(stderr, "FBO GL_FRAMEBUFFER_UNSUPPORTED  %x\n", status); 
+            LOGW( "FBO GL_FRAMEBUFFER_UNSUPPORTED  %x\n", status); 
             return INIT_FAILED;
 
         default : 
-            fprintf(stderr, "failed to make complete framebuffer object %x\n", status);
+            LOGW( "failed to make complete framebuffer object %x\n", status);
             return INIT_FAILED;
     }
 }
@@ -42,7 +43,7 @@ TestError checkAndReportCompilationStatus(GLuint name)
  
     GLchar *log = (GLchar *)malloc(logLength);
     glGetShaderInfoLog(name, logLength, &logLength, log);
-    fprintf(stderr, "%s",log);
+    LOGW( "%s",log);
     free(log);
 
     return SHADER_COMPILATION_FAILED;
@@ -65,7 +66,7 @@ TestError checkAndReportLinkStatus(GLuint name)
     glGetProgramInfoLog(name, length, &result, log);
 
     /* print an error message and the info log */
-    fprintf(stderr, "sceneInit(): Program linking failed: %s\n", log);
+    LOGW( "sceneInit(): Program linking failed: %s\n", log);
     free(log);
     return SHADER_LINK_FAILED;
 }
@@ -125,10 +126,21 @@ void DrawGeo(Geometry* buffs)
 {
     glBindBuffer(GL_ARRAY_BUFFER, buffs->vbo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffs->ibo);
-    glDrawElements(GL_TRIANGLES,
-            buffs->indexCnt,
-            GL_UNSIGNED_INT,
-            0);
+    //Larger batches froze some devices
+    int i = 0;
+    const int STEP = 6*1000;
+    for (; i < buffs->indexCnt; i+= STEP) {
+        glDrawElements(GL_TRIANGLES,
+                STEP,
+                GL_UNSIGNED_INT,
+                (void*)i);
+    }
+    if (buffs->indexCnt - i > 0)  {
+        glDrawElements(GL_TRIANGLES,
+                buffs->indexCnt - i,
+                GL_UNSIGNED_INT,
+                (void*)i);
+    }
 }
 
 TestError DeleteGeometry(Geometry* geo) 

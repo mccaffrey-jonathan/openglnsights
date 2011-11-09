@@ -2,6 +2,7 @@
 #include "platform/gl.h"
 #include "common/gl.h"
 #include "common/scene_setup.h"
+#include <stdlib.h>
 
 typedef struct {
     ShaderPair shads;
@@ -51,7 +52,6 @@ static TestError setup(TestData* data)
     glDisable(GL_CULL_FACE);
     glDepthFunc(GL_LEQUAL);
     glClearColor(1.0f, 0.0f, 0.5f, 1.0f);
-    glClearDepth(1.0f);
     glViewport(0, 0, WIDTH, HEIGHT);
 
     return SUCCESS;
@@ -74,6 +74,7 @@ static TestError warmup(const TestData* data)
     for (int i = 0; i < WARMUP_ITERS; i++) {
         DrawFrame(priv);
     }
+    glFinish();
     return SUCCESS;
 }
 
@@ -83,8 +84,8 @@ static TestError run(TestData* data)
     Private* priv = (Private*) data->priv;
     for (int i = 0; i < TEST_ITERS; i++) {
        DrawFrame(priv);
+       glFinish();
     }
-    glFinish();
     return SUCCESS;
 }
 

@@ -32,6 +32,7 @@ TestError DeletePostFramebuffer(PostFramebuffer* fb);
 
 TestError BufferPostVertices();
 
+TestError CompileSimplePostShaders(ShaderPair* priv);
 TestError CompilePostShaders(ShaderPair* priv);
 
 TestError GetPostUniformAndAttribLocs(GLuint prg,
