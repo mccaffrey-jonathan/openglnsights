@@ -16,3 +16,12 @@ clears: SUCCESS 524288000 in 273 msclears SUCCESS 524288000 in 273 ms
 cpu_writes: SUCCESS 1048576000 in 218 mscpu_writes SUCCESS 1048576000 in 218 ms
 cpu_read_accum: SUCCESS 1069547520 in 313 mscpu_read_accum SUCCESS 1069547520 in 313 ms
 
+Desktop (GeForce 8800 GTS, 2.4GHz Intel Core 2 Quad)
+trivial_pass: SUCCESS 0 in 0 ms
+one_tap_post: SUCCESS 524288000 in 303 ms
+five_tap_post: SUCCESS 524288000 in 406 ms
+vertex_lighting: SUCCESS 524288000 in 178 ms
+clears: SUCCESS 524288000 in 38 ms
+cpu_writes: SUCCESS 1048576000 in 69 ms
+cpu_read_accum: SUCCESS 1069547520 in 161 ms
+
