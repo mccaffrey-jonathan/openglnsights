@@ -50,13 +50,13 @@ mobile however, the GPU is usually one component on an integrated
 \textit{System-on-a-Chip (SoC)} designed for mobile and embedded applications,
 which means it is a fraction of the cost and area of a desktop GPU.
 
-\subsection{Differences in Rendering
-Architecture}\label{Jon-McCaffrey:differences-in-rendering-architecture}
+\subsection{Differences in Rendering Architecture}
+\label{Jon-McCaffrey:differences-in-rendering-architecture}
 \index{tiling} \index{Immediate-Mode Rendering} Mobile and desktop GPUs don't
 differ only in scale.  mobile GPUs such as the Imagination Tech SGX543MP2 used
 in the Apple iPhone 4S/iPad 2 and the Mali-400 used in the Samsung Galaxy S2
-use a \textit{tiled} rendering architecture \cite{anandtech_galaxys2}.  In
-contrast, familiar desktop GPUs from Nvidia and ATI and mobile GPUs like the
+use a \textit{tiled} rendering architecture \cite{Klug11a}.  In
+contrast, familiar desktop GPUs from NVIDIA and ATI and mobile GPUs like the
 GeForce ULV GPU use in the Samsung Galaxy Tab 10.1 use \textit{Immediate Mode
 Rendering (IMR)}.
 
@@ -97,7 +97,7 @@ performance, this means that GPUs must include their own dedicated memory.
 While this increases cost, it is an optimization opportunity since this memory
 can be optimized for graphics workloads.
 
-For example, the Nvidia \textit{Fermi} architecture uses GDDR5 memory that is
+For example, the NVIDIA \textit{Fermi} architecture uses GDDR5 memory that is
 heavily partitioned \cite{Walton10} to allow for very wide memory interface.
 There is also no competition for this bandwidth, since except for uploads from
 the rest of the system and scan-out for output devices, the GPU is the only
@@ -110,7 +110,7 @@ same SoC as the CPU and other components, and to save cost, power, size, and
 complexity, shares the same RAM and memory interface.  This is known as an
 \textit{Unified Memory Architecture (UMA)}.  A common memory type might be the
 low-power LPDDR2, which has a 32-bit wide interface
-\cite{anandtech_lg_optimus}.  Not only is this memory general-purpose, the GPU
+\cite{Klug11b}.  Not only is this memory general-purpose, the GPU
 now shares bandwidth with other parts of the system like the CPU, network,
 camera, multimedia, and display.   
 
@@ -144,7 +144,15 @@ heavy amounts of client-side work during the frame.
 Besides limiting performance, memory accesses external to the GPU consume a
 great deal of power, sometimes more than the compute itself \cite{Antochi04}
 
-TODO cite CPU/GPU read and write bandwidth numbers
+\begin{table}[htb]\centering \begin{tabular}{|c|c|c|c|} 
+\hline \small{Device} & \small{CPU Write Bandwidth} & \small{GPU Write Bandwidth}   \\ \hline 
+\hline \small{Motorola Droid X} & \small{1.4GBps} & \small{6.8GBps} \\ 
+\hline \small{LG Thunderbolt} & \small{0.866GBps} & \small{0.518GBps} \\ 
+\hline \small{Dell Inspiron 520} & \small{4.8GBps} & \small{\%3.8GBps} \\ 
+\hline \small{Desktop System*} & \small{14.2GBps} & \small{} & \small{25.7GBps}\\
+\end{tabular} 
+\caption{Write bandwidth for CPU and GPU on different devices.  CPU write bandwidth estimated by memset.  GPU bandwidth estimated by glClear+glFinish.  Desktop system has an Intel Core 2 Quad and NVIDIA 8800 GTS.}
+\label{JonMcCaffrey:bandwidth} \end{table}
 
 \subsection{Relative Display Sizes}\label{Jon-McCaffrey:relative-display-sizes}
 
@@ -154,15 +162,15 @@ Despite the tight power and cost constraints for mobile devices, the display
 sizes of modern mobile devices are a considerable fraction of the size of
 desktop displays.  
 
-\begin{table}[htb]\centering \begin{tabular}{|c|c|c|c|} \hline% \small{Device}
-& \small{Resolution} & \small{Percentage of 1280x1024 (20 in)} &
-\small{Percentage of 1920x1080 (24 in)}  \\ \hline% \small{Motorola XOOM} &
-\small{1280x800} & \small{\%78.13} & \small{\%49.38}\\ \hline% \small{Apple
-iPad 2} & \small{1024x768} & \small{\%58.63} & \small{\%37.06}\\ \hline%
-\small{Apple iPhone 4S} & \small{960x640} & \small{\%46.89} & \small{\%29.63}\\
-\hline% \small{Samsung Galaxy S2} & \small{800x480} & \small{\%30.00} &
-\small{\%18.52}\\ \hline% \end{tabular} \caption{Resolution comparison of
-desktop and mobile displays} \label{JonMcCaffrey:resolutions} \end{table}
+\begin{table}[htb]\centering \begin{tabular}{|c|c|c|c|} 
+\hline \small{Device} & \small{Resolution} & \small{\% of 1280x1024 (20 in)} & \small{\% of 1920x1080 (24 in)}  \\ \hline 
+\small{Motorola XOOM} & \small{1280x800} & \small{\%78.13} & \small{\%49.38}\\ 
+\hline \small{Apple iPad 2} & \small{1024x768} & \small{\%58.63} & \small{\%37.06}\\ 
+\hline \small{Apple iPhone 4S} & \small{960x640} & \small{\%46.89} & \small{\%29.63}\\
+\hline \small{Samsung Galaxy S2} & \small{800x480} & \small{\%30.00} & \small{\%18.52}\\ \hline
+\end{tabular} 
+\caption{Resolution comparison of desktop and mobile displays} 
+\label{JonMcCaffrey:resolutions} \end{table}
 
 \index{fragment shading}
 
@@ -182,7 +190,7 @@ Basic rendering can consume significant amounts of memory bandwidth.  Memory
 bandwidth besides being a performance limit, memory bandwidth is also a
 significant power drain, so it is particularly important to limit it.  Assume
 the common configuration of 16-bit color with 16-bit depth
-\cite{GLSurfaceView}, with a reasonable 1024x768 display.  Accessing every
+\cite{Google11}, with a reasonable 1024x768 display.  Accessing every
 pixel in the framebuffer 60 times a second takes 94MB/s of bandwidth.  So
 simply to write all the pixels in a scene every frame, at 60 frames a second,
 with 0\% overdraw, takes 94MB/s of bandwidth.
@@ -211,9 +219,7 @@ even basic operations consume a significant amount of memory bandwidth;
 anything interesting our application is doing only costs more bandwidth.  If a
 32-bit framebuffer is used, this number will be even greater.  To put this in
 context, the ipad2 has been benchmarked at 2.3GB/s for stdlib writes
-\cite{anandtech_ipad2}.  
-
-TODO Bandwidth nums to put this in context
+\cite{Shimpi11}  \ref{JonMcCaffrey:bandwidth} for more comparisons.
 
 \index{color depth}
 
@@ -221,7 +227,7 @@ Applications using a 32-bit framebuffer that may be bandwidth-bound should
 experiment with a lower-precision format.  Since the output framebuffer is not
 often used in subsequent calculations, the loss of numerical precision is not
 propagated and magnified.  One valid concern is banding or quantization of
-smooth gradients \cite{32_bit_windows}.  However, this may be more of an issue
+smooth gradients \cite{Guy10}.  However, this may be more of an issue
 in graphics, photography and compositing applications rather than games and
 3d-applications, just because of the nature of the produced content.
 
@@ -249,8 +255,8 @@ increasing run-time performance.
 
 One complication is that there are multiple incompatible formats for texture
 compression supported via OpenGL ES2 extensions.  Example formats would be
-S3TC, available on Nvidia Tegra, and PVRTC, available on ImaginationTech SGX
-\cite{motorola_texture}.
+S3TC, available on NVIDIA Tegra, and PVRTC, available on ImaginationTech SGX
+\cite{Motorola11}.
 
 To support texture compression on multiple devices, an application must either
 package multiple versions of its assets and dynamically choose the correct
@@ -259,7 +265,7 @@ compression at run or install-time must be done carefully to not slow down the
 application, and gives up many of the benefits of improved loading-time and
 disk-space, as well as the internet bandwidth required for
 installation/download of the application on mobile devices.  S3TC has
-compression ratios between 4:1 and 8:1 \cite{arb_texture_compresssion}.
+compression ratios between 4:1 and 8:1 \cite{Domine00}.
 
 \section{Reducing Fragment Workload}
 \label{Jon-McCaffrey-Reducing-Fragment-Workload}
@@ -282,7 +288,7 @@ On IMR GPUs, this extra bandwidth consumption and fragment work can be limited
 by sorting and rendering geometry from front to back.  This is especially
 practical for static geometry which can be processed into a spatial data
 structure during export.  An additional heuristic for games is to render the
-player character first and the sky-box last.  \cite{fast_mobile_shaders}.  For
+player character first and the sky-box last.  \cite{Pranckevicius11a}.  For
 batches where front-to-back object sorting is not practical, for example with
 complicated, interlocking geometry or heavy use of alpha-testing, a depth
 pre-pass can be used to eliminate redundant pixel calculations, at the cost of
@@ -297,7 +303,7 @@ the scene color are rendered.  Clearly, this only works for opaque objects.
 Even without overdraw, heavy amounts of overlapping geometry can still be
 expensive because of the depth-buffer reads needed to reject pixels.  Primitive
 assembly, rasterization, and the pixel reject rate can also become limiting for
-large areas like sky-boxes \cite{fast_mobile_shaders}.
+large areas like sky-boxes \cite{Pranckevicius11a}.
 
 One type of effect that can be particular expensive in terms of fragment
 shading and read and write bandwidth is particle effects rendered via multiple
@@ -334,7 +340,16 @@ If the additional pass cannot be eliminated, then all full-screen post effects
 can be merged into a single pass.  This saves redundant round-trips to
 framebuffer memory.
 
-TODO benchmark numbers showing slowdown of additional passes
+\begin{table}[htb]\centering \begin{tabular}{|c||c|c|c|c|} 
+\hline \small{Device} & \small{color\_clear} & \small{vertex\_lighting} & \small{one\_tap\_post} & \small{five\_tap\_post}  \\ \hline 
+\hline \small{Motorola Droid X} & \small{3.67GPps} & \small{234MPps}& \small{5.36MPps\footnotemark[1]} & \small{5.7MPps\footnotemark[1]} \\ 
+\hline \small{LG Thunderbolt} & \small{305MPps} & \small{48.7MPps}& \small{30MPps} & \small{20.36MPps} \\ 
+\hline \small{Dell Inspiron 520} & \small{1.92GPps} & \small{231MPps}& \small{139MPps} & \small{120MPps} \\ 
+\hline \small{Desktop System*} & \small{13.8GPps} & \small{2.95GPps}& \small{1.73GPps} & \small{1.29GPps} \\ 
+\end{tabular} 
+\caption{Performance for different shading and passes.  All tests used 1024x1024 16-bit offscreen depth and color buffers as the main framebuffer, with a 32-bit RGBA intermediate color buffer and 16-bit depth buffer where applicable.  vertex\_lighting renders a synthetic scene with vertex lighting, a per-pixel texture lookup, and 39200 triangles with 0\% overdraw.  Five\_tap\_post and one\_tap\_post draw the same scene with five- and one- sample full-screen post-processing passes, respectively.  All units are pixels per second.  Desktop system has an Intel Core 2 Quad and NVIDIA 8800 GTS.}
+\footnotetext[1] {The DroidX post-processing scores are low enough that I suspect an implicit render target-to-texture format conversion must be taking place}
+\label{JonMcCaffrey:pass_performance} \end{table}
 
 \index{deferred shading}
 
@@ -346,9 +361,10 @@ buffer can be rendered at a time.  Even if MRTs were available however, the
 additional bandwidth cost of reading and writing multiple full-screen buffers
 would probably rule out deferred shading as a possibility.
 
-\subsection{Off-screen Passes}\label{Jon-McCaffrey-Off-Screen-Pass}
-
-\index{bloom} \index{texture filtering}
+\subsection{Off-screen Passes}
+\label{Jon-McCaffrey-Off-Screen-Pass}
+\index{bloom}
+\index{texture filtering}
 
 Similar to full-screen effects are effects requiring off-screen render targets
 like environmental reflections, depth-map shadows, and light bloom.
@@ -365,7 +381,7 @@ The smaller size of the offscreen target makes this strategy particularly
 cache-friendly.  This may work well for light bloom and environmental
 reflection, for example.  Depending on the effect, an additional Gaussian
 blurring pass on the off-screen target may be needed, but these can also be
-accelerated with texture filtering \cite{bloom}
+accelerated with texture filtering \cite{Rideout}.
 
 Even when the blurring due to texture filtering is not beneficial, reducing
 off-screen target resolution may be an easy way to reduce the fragment workload
@@ -376,7 +392,8 @@ the scene, it is important on non-tiled architecture to minimize over-draw to
 avoid wasted work.  One advantage of full-screen post-processing in a separate
 pass is that each pixel is computed exactly once.
 
-\subsection{Shaving Fragment Work}\label{Jon-McCaffrey-Shaving-Fragment-Work}
+\subsection{Shaving Fragment Work}
+\label{Jon-McCaffrey-Shaving-Fragment-Work}
 
 One optimization with a significant amount of leverage is optimizing fragment
 shaders.  Shaders tend to be fairly small and simple, but the sheer number of
@@ -387,14 +404,14 @@ performance.
 
 For static geometry, baking most of the illumination into light-maps will save
 computation at run-time, and allow the use of more advanced lighting techniques
-than would otherwise be affordable \cite{lightmaps} \cite{unity_graphics_perf}.
+than would otherwise be affordable \cite{Miller99} \cite{Unity11}.
 This does require a well-developed asset pipeline however.
 
 Another classic trick to avoid floating-point work and special functions in
 fragment shaders is to approximate a complicated function with a look-up
-texture \cite{ios_shader_tricks}.  This allows the use of much more elaborate
+texture \cite{Pranckevicius11b}.  This allows the use of much more elaborate
 BDRF's.  This also allows for effects that would be difficult to achieve purely
-procedurally \cite{illustrative}.  1-D look-up textures may be particular
+procedurally \cite{Mitchell07}.  1-D look-up textures may be particular
 cache-friendly, and with a smooth input parameter should have good locality of
 reference.  
 
@@ -403,8 +420,8 @@ texture fetch.  Large amounts of state per fragment may also limit the number
 of in-flight fragments, which affects the ability of the GPU to hide texture
 fetch latency.
 
-\subsection{Vertex vs. Fragment
-Work}\label{Jon-McCaffrey-Vertex-vs-Fragment-Work}
+\subsection{Vertex vs. Fragment Work}
+\label{Jon-McCaffrey-Vertex-vs-Fragment-Work}
 
 For lighting and shading the primary objects in our scene, traditional IMR
 wisdom states that moving computations like lighting, specularity, and
@@ -414,7 +431,7 @@ performance at the cost of image quality, and this is still very true for IMR.
 However, for TBDRs, this performance wisdom is more dubious.  This is because
 mobile devices do have smaller screens with fewer pixels to be shaded that
 desktop, and because TBDRs must perform all vertex computations for each tile
-\cite{apple_vertex}.  TBDRs are more likely to be vertex-bound, and Unity
+\cite{Apple11}.  TBDRs are more likely to be vertex-bound, and Unity
 recommends 40k or less vertices on recent iOS devices, which use Imagination
 Tech SGX GPUs \cite{unity_graphics_perf}.
 
@@ -438,11 +455,17 @@ transform cache)  To lower this bandwidth, a lower-precision buffer format may
 be used such as \textit{OES\_vertex\_half\_float}.  Interleaved vertex data,
 which interleaves the attributes for each vertex in the same buffer, is also
 much more efficient to fetch, since an entire vertex can be fetched in one
-linear read \cite{apple_vertex}.  If there is a pre-transform vertex attribute
+linear read \cite{Apple11}.  If there is a pre-transform vertex attribute
 cache, which stores fetched vertex attributes (with some locality), this will
 also use it more efficiently.  
 
 \section{Conclusion}\label{Jon-McCaffrey-Conclusion}
+
+
+
+
+
+TODO Probably should get number for effect of silicon process improvement on power.
 
 TODO Conclusion not complete
 
