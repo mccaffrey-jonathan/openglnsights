@@ -14,11 +14,10 @@ developers.  Developers and applications hoping to make the transition from
 desktop to mobile need to be aware of this to create the best experience
 possible for given hardware.
 
-\section{Constraint Inspires
-Creativity}\label{Jon-McCaffrey:Constraints-Inspire-Creativity}
+\section{Important Differences and Constraints}\label{Jon-McCaffrey:Constraints-Inspire-Creativity}
 
-\subsection{Differences in
-Scale}\label{Jon-McCaffrey:Architectural-Differences} Modern mobile devices are
+\subsection{Differences in Scale}
+\label{Jon-McCaffrey:Architectural-Differences} Modern mobile devices are
 capable and remarkable devices.  However, they face much greater limitations
 than desktop systems in terms of cost, die size, power consumption, and heat
 dissipation.
@@ -144,12 +143,13 @@ heavy amounts of client-side work during the frame.
 Besides limiting performance, memory accesses external to the GPU consume a
 great deal of power, sometimes more than the compute itself \cite{Antochi04}
 
-\begin{table}[htb]\centering \begin{tabular}{|c|c|c|c|} 
+\begin{table}[htb]\centering \begin{tabular}{|c|c|c|} 
 \hline \small{Device} & \small{CPU Write Bandwidth} & \small{GPU Write Bandwidth}   \\ \hline 
 \hline \small{Motorola Droid X} & \small{1.4GBps} & \small{6.8GBps} \\ 
 \hline \small{LG Thunderbolt} & \small{0.866GBps} & \small{0.518GBps} \\ 
-\hline \small{Dell Inspiron 520} & \small{4.8GBps} & \small{\%3.8GBps} \\ 
-\hline \small{Desktop System*} & \small{14.2GBps} & \small{} & \small{25.7GBps}\\
+\hline \small{Dell Inspiron 520} & \small{4.8GBps} & \small{3.8GBps} \\ 
+\hline \small{Desktop System} & \small{14.2GBps} & \small{25.7GBps}\\
+\hline
 \end{tabular} 
 \caption{Write bandwidth for CPU and GPU on different devices.  CPU write bandwidth estimated by memset.  GPU bandwidth estimated by glClear+glFinish.  Desktop system has an Intel Core 2 Quad and NVIDIA 8800 GTS.}
 \label{JonMcCaffrey:bandwidth} \end{table}
@@ -346,6 +346,7 @@ framebuffer memory.
 \hline \small{LG Thunderbolt} & \small{305MPps} & \small{48.7MPps}& \small{30MPps} & \small{20.36MPps} \\ 
 \hline \small{Dell Inspiron 520} & \small{1.92GPps} & \small{231MPps}& \small{139MPps} & \small{120MPps} \\ 
 \hline \small{Desktop System*} & \small{13.8GPps} & \small{2.95GPps}& \small{1.73GPps} & \small{1.29GPps} \\ 
+\hline
 \end{tabular} 
 \caption{Performance for different shading and passes.  All tests used 1024x1024 16-bit offscreen depth and color buffers as the main framebuffer, with a 32-bit RGBA intermediate color buffer and 16-bit depth buffer where applicable.  vertex\_lighting renders a synthetic scene with vertex lighting, a per-pixel texture lookup, and 39200 triangles with 0\% overdraw.  Five\_tap\_post and one\_tap\_post draw the same scene with five- and one- sample full-screen post-processing passes, respectively.  All units are pixels per second.  Desktop system has an Intel Core 2 Quad and NVIDIA 8800 GTS.}
 \footnotetext[1] {The DroidX post-processing scores are low enough that I suspect an implicit render target-to-texture format conversion must be taking place}
@@ -461,13 +462,38 @@ also use it more efficiently.
 
 \section{Conclusion}\label{Jon-McCaffrey-Conclusion}
 
+Currently
 
+TODO summary here
 
+One important question is will this significant difference in the expected
+performance of mobile and desktop GPUs continue to be a consideration, or is it
+something that the steady march of semiconductor process and architectural
+improvements will soon make irrelevant.  Looking at the projected roadmaps for
+mobile GPU vendors, the compute power of mobile GPUs should continue to
+increase significantly over the next few years.  However, other limits,
+including bandwidth and power consumption, are more fundamental and cannot be
+conquered as easily.
 
+The expected workloads of mobile devices are also changing.  Sprite-based games
+and composition-heavy workloads are still very important, but several
+publishers have produced mobile ports of desktop game engines, and games with
+console or desktop levels of rich game worlds and visual quality.  These games
+raise the bar for what is considered possible on mobile systems, and present
+challenges in terms of the amount of geometry, assets, and visual effects they
+require.
 
-TODO Probably should get number for effect of silicon process improvement on power.
+Another are still to be fully explored is creative integration with camera and
+multimedia.  Technologies such as Android's SurfaceTexture allow video decode
+or camera preview to be streamed into an OpenGL ES texture, which can then be
+sampled and rendered into a scene.  This sort of integration is possible on
+other computing platforms, but is much more compelling with the rich sensor and
+media capabilities of modern mobile devices.
 
-TODO Conclusion not complete
+In short, while the performance profiles of mobile devices with respect to
+modern desktop systems are indeed significant, with a consciousness to the
+costs and limitations involved, developers can still work hard to deliver
+beautiful and compelling graphics.
 
 \bibliographystyle{akpbib} \bibliography{YourBib}
 
