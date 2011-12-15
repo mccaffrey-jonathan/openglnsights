@@ -66,8 +66,8 @@ work done and writing the framebuffer again.  This behavior is known as overdraw
 Even without overdraw, the depth buffer still must be read for later fragments 
 generated at a pixel location in order to reject them.
 
-Tilers instead divide the framebuffer into tiles of pixels.  All draw commands
-are buffered, or deferred.  At the end of the frame, for each tile, all
+Tilers instead divide the framebuffer into tiles of pixels.  All draw
+commands are buffered.  At the end of the frame, for each tile, all
 geometry for the scene is re-rendered and rasterized into a framebuffer cache
 with that tile scissored out.  Once all pixels have been resolved, the entire
 tile is written out to memory.  This saves redundant framebuffer writes and
@@ -94,7 +94,7 @@ architectures, see \textit{Performance Tuning for Tile-Based Architectures}
 \cite{Chapter TODO} 
 
 \index{Tile-Based Deferred Rendering} There is an additional group of tilers
-which use \textit{Tile-Based Deferred Rendering}, like the Imagination Tech SGX
+which use \textit{Tile-Based Deferred Rendering (TBDR)}, like the Imagination Tech SGX
 family.  The idea is to rasterize all primitives in a tile before performing
 any fragment shading.  This allows \textit{Hidden Surface Removal (HSR)} and
 depth-testing to be performed in a fast framebuffer cache before any fragment
@@ -382,14 +382,15 @@ large areas like sky-boxes \cite{Pranckevicius11a}.
 
 One type of effect that can be particular expensive in terms of fragment
 shading and framebuffer bandwidth is particle effects rendered via multiple
-overlapping quads with blending.  Each layer of overlap requires a read and
-write of the existing framebuffer value, and an additional fragment computation
-and blending operation.  This generates large amounts of framebuffer traffic
-and computation for the number of final pixels calculated.  Some simple effects
-like a torch flame can be converted into an animated shader, for example by
-changing a texture offset each frame.  Other effects, like a candle flame, can
-be done by rendering a mesh of dynamic data, instead of many billboarded quads.  This
-reduces overlap and the resultant blending.
+overlapping quads with blending.  On IMRs, each layer of overlap requires a
+read and write of the existing framebuffer value.  For all mobile GPUs, each
+layers adds additional fragment computation and blending.  Some simple
+effects like a torch flame can be converted into an animated shader, for
+example by changing a texture offset each frame.  Other effects, like a
+candle flame, can be done by rendering a mesh of dynamic data, instead of
+many overlapping billboarded quads.  This reduces overlap and the resultant
+blending.  When applicable, using opaque, alpha-tested sprites also eliminates
+the cost of blending.
 
 \subsection {Full-Screen Effects}\label{Jon-McCaffrey-Full-Screen-Effects}
 Full-screen post-processing effects are a major tool for visual effects in
@@ -441,7 +442,7 @@ One limitation of OpenGL ES 2.0 is poor support for \textit{Multiple Render
 Targets (MRT)}, which allow multiple output buffers from a fragment shader.
 This makes deferred shading impractical, it relies on separate \textit{geometry
 buffers} to store different geometry attributes, but without MRTs, this
-requires rendering rendering a full pass of the scene for each.  Even if MRTs
+requires rendering a full pass of the scene for each.  Even if MRTs
 were available however, the additional bandwidth cost of reading and writing
 multiple full-screen intermediate buffers make defered shading prohibitively expensive.
 
@@ -453,13 +454,13 @@ multiple full-screen intermediate buffers make defered shading prohibitively exp
 Similar to full-screen effects are effects requiring off-screen render targets
 like environmental reflections, depth-map shadows, and light bloom.
 
-Many of these effects require multiple samples to the off-screen image for a
+Many of these effects require multiple samples of the off-screen image for a
 soft effect.  Since these textures are rendering targets, they probably don't
 have full mipmap levels or optimal internal texture layouts for coherent read
-access, so eliminating the cost of multiple samples into a large texture is
+access, so eliminating the cost of multiple samples of a large texture is
 particularly important One way to optimize off-screen effects that require a
 blurred image is to take advantage of texture filtering hardware.  Rather than
-rendering a large offscreen image, then taking multiple samples in a fragment
+rendering a large offscreen image, then taking multiple samples of a fragment
 shader, the scene can be rendered into a low-resolution offscreen target and
 blurred via texture filtering.
 
@@ -519,20 +520,18 @@ specularity, and normalization from per-fragment to per-vertex and then
 interpolating the results can save performance at the cost of image quality,
 and this is still true for IMRs.
 
-However, for tilers, this performance wisdom is more dubious.
-This is because mobile devices have smaller screens with fewer pixels to be
-shaded than desktop, so per-fragment work is less onerous, and because tilers
-must perform all vertex computations for each tile \cite{Apple11}.  Tilers are
-more likely to be vertex-bound, and Unity recommends 40k or less vertices on
-recent iOS devices, which use Imagination Tech SGX GPUs \cite{Unity11}.
+However, for tilers, this performance wisdom is more dubious because tilers
+must perform all vertex computations for each tile \cite{Apple11}.  Tilers
+are more likely to be vertex-bound, and Unity recommends 40k or less vertices
+on recent iOS devices, which use Imagination Tech SGX GPUs \cite{Unity11}.
 
 This means that heavy vertex shaders, even if they save fragment work, may be
 a performance drag on tiling architectures.  This is particularly true for
-TBDRs perform little-to-no redundant fragment work.  When working with IMRs,
-lifting computation from the fragment shader to the vertex shader is likely
-a performance win, and becoming vertex-bound is less of a concern.
+TBDRs since they perform little-to-no redundant fragment work.  When working
+with IMRs, lifting computation from the fragment shader to the vertex shader
+is likely a performance win, and becoming vertex-bound is less of a concern.
 
-Another consideration in the relationship between vertex and fragment shaders
+Another consideration to the relationship between vertex and fragment shaders
 is that adding too many additional varyings can be a drag on performance, since
 they must all be interpolated, and a large amount of per-fragment memory may
 limit the number of fragments that can be in-flight at once.  A large number of
@@ -543,13 +542,22 @@ interface between vertex and fragment shading can be valuable.
 Vertex processing is more of a bandwidth drain on tiling architectures, since
 the attributes probably are pulled again for each tile, unless they hit in a
 pre- or post- transform cache.  To lower this bandwidth, use a lower-precision
-buffer format such as \textit{OES\_vertex\_half\_float}.  Interleaved vertex
-data, which interleaves the attributes for each vertex in the same buffer, is
-also more efficient for attribute fetch, since an entire vertex can be fetched
-in one linear read \cite{Apple11}.  If there is a pre-transform vertex
-attribute cache, which stores fetched vertex attributes and the surrounding
-data, this will make more efficient use of it, since spatial locality in the
-cache means less data will have to be fetched from DRAM.
+buffer format such as \textit{OES\_vertex\_half\_float}.
+
+Interleaved vertex data, which interleaves the attributes for each vertex in
+the same buffer, is also more efficient for attribute fetch, since an entire
+vertex can be fetched in one linear read \cite{Apple11}.  If there is a
+pre-transform vertex attribute cache, which stores fetched vertex attributes
+and the surrounding data, this will make more efficient use of it, since
+spatial locality in the cache means less data will have to be fetched from
+DRAM.
+
+One caveat to interleaving vertex data is if the vertex data is partially
+dynamic.  The most common case is when only positions are updated.  A solution
+to separate the vertex data into "hot" attributes that are frequently updated
+and "cold" ones which are mostly static, and store them in separate buffers.
+This avoids inefficient updates to the "hot" attributes because of a large
+stride between vertices.
 
 \section{Conclusion}\label{Jon-McCaffrey-Conclusion}
 
@@ -562,13 +570,15 @@ must be a dominant consideration during development.  The wide range of devices
 in the market, differing in age, resolution, and capability, only make
 this more difficult.
 
-One important question is if the significant difference in performance between
-mobile and desktop GPUs will continue to be a dominating consideration, or if
-this is something that the steady march of semiconductor process and
-architectural improvements will soon make irrelevant.  Looking at the projected
-roadmaps for mobile GPU vendors, the compute power of mobile GPUs should indeed
-climb over the next few years.  However, other limits, including bandwidth and
-power consumption, are more fundamental and cannot be conquered as easily.
+One important question is if the significant difference in performance
+between mobile and desktop GPUs will continue to be a dominating
+consideration in application development, or if it is something that the
+steady march of semiconductor process and architectural improvements will
+soon make irrelevant.  Looking at the projected roadmaps for mobile GPU
+vendors, the compute power of mobile GPUs should indeed climb over the next
+few years.  However, other limits, including bandwidth and power consumption,
+are more fundamental and cannot be conquered as easily.  Desktop and even
+laptop systems are less tightly constrained on those dimensions.
 
 The expected workloads of mobile devices are also changing.  Sprite-based games
 and 2D workloads are still very important, but several publishers have
