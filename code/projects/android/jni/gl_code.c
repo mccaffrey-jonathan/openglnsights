@@ -45,18 +45,19 @@ static int setupGraphics(int w, int h) {
     printGLString("Renderer", GL_RENDERER);
     printGLString("Extensions", GL_EXTENSIONS);
 
-    FILE* tmp = tmpfile();
+    //FILE* tmp = tmpfile();
 
-    RunAllTests(tmp);
+    //RunAllTests(tmp);
+    RunAllTests(stdout);
 
-    rewind(tmp);
-    char str[4096];
-    memset(str, '\0', sizeof(str));
+    //rewind(tmp);
+    //char str[4096];
+    //memset(str, '\0', sizeof(str));
 
-    while(!feof(tmp)) {
-        fgets(str, 4095,tmp);
-        LOGI(str);
-    }
+    //while(!feof(tmp)) {
+    //    fgets(str, 4095,tmp);
+    //    LOGI(str);
+    //}
     LOGI("Test suite complete");
 
     return 1;
