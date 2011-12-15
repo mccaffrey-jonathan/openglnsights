@@ -84,6 +84,15 @@ horsepower.  For more tips on performance tuning specific to tiling
 architectures, see \textit{Performance Tuning for Tile-Based Architectures}
 \cite{Chapter TODO}
 
+Tiling doesn't come for free.  The scene geometry must be re-transformed and
+clipped for each tile, so to maintain a balanced pipeline additional vertex
+processing power is needed.  Bandwidth will also be spent re-reading vertex
+data for each tile.  The digital logic for tiling, repeated vertex shading,
+and a fast framebuffer cache also takes transistors from raw fragment shading
+horsepower.  For more tips on performance tuning specific to tiling
+architectures, see \textit{Performance Tuning for Tile-Based Architectures}
+\cite{Chapter TODO} 
+
 \index{Tile-Based Deferred Rendering} There is an additional group of tilers
 which use \textit{Tile-Based Deferred Rendering}, like the Imagination Tech SGX
 family.  The idea is to rasterize all primitives in a tile before performing
@@ -182,8 +191,10 @@ interfere with each other.}
 \index{resolution} \index{display}
 
 Despite the tight power and cost constraints for mobile devices, the display
-sizes of modern mobile devices are a considerable fraction of the size of
-desktop displays.
+resolutions of modern mobile devices are a considerable fraction of the
+resolutions of desktop displays.  Even though the displays sizes are smaller,
+mobile devices often have a higher pixel density to be viewable at a close
+distance.
 
 \begin{table}[htb]\centering \begin{tabular}{|c|c|c|c|} 
 \hline \small{Device} & \small{Resolution} & \small{\% of 1280x1024 (20 in. monitory)} & \small{\% of 1920x1080 (24 in. monitor)}  \\ \hline 
@@ -214,9 +225,9 @@ application useabilty.
 Basic rendering can consume surprisingly significant amounts of memory
 bandwidth.  Assume the framebuffer has 16-bit color with 16-bit depth
 \cite{Google11} and a 1024x768 resolution.  Accessing every pixel in the
-framebuffer 60 times a second takes 94MB/s of bandwidth.  So to write all the
+framebuffer 60 times a second takes 94MBps of bandwidth.  So to write all the
 pixels' colors every frame, at 60 frames a second, with 0\%
-overdraw, takes 94MB/s of bandwidth.
+overdraw, takes 94MBps of bandwidth.
 
 \index{bandwidth} \index{depth}
 
@@ -231,18 +242,30 @@ application is done writing it either.  After \texttt{eglSwapBuffers}, it may
 need to be composited by the platform-specific windowing system, and then
 scanned out to the display.  Unlike desktop systems which often have
 dedicated graphics or framebuffer memory, this will also consume system memory
-bandwidth.  This will consume an additional 96MB/s of bandwidth just for
-scanout, or at least an additional 288MB/s with composition(read, write to
+bandwidth.  This will consume an 94MBps of bandwidth just for
+scanout, or at least 288MBps with composition(read, write to
 composited framebuffer, and scan-out).
 
 \index{composition}
 
- Thus basic clear-fill-and-display operation consumes 564-752MB/s of bandwidth, so
-even basic operations consume a significant amount of memory bandwidth;
-anything interesting the application does only costs more bandwidth. If a
-32-bit framebuffer is used, this number will be even greater.  To put this in
-context, the iPad2 has been benchmarked at 2.3GB/s for \textit{stdlib} writes
-\cite{Shimpi11}  .  See \ref{JonMcCaffrey:bandwidth} for more comparisons.
+ Thus with a depth and color clear, one depth buffer read, a depth and color
+ buffer write, and display scanout, basic clear-fill-and-display operation
+ consumes 564-752MBps of bandwidth, so even simple use cases consume a
+ significant amount of memory bandwidth; anything interesting the application
+ does only costs more bandwidth. If a 32-bit framebuffer is used, this number
+ will be even greater.  To put this in context, the iPad2 has been benchmarked
+ at 2.3GB/s for \textit{stdlib} writes \cite{Shimpi11}.  See
+ \ref{JonMcCaffrey:bandwidth} for more comparisons.
+ %* TODO come up with better BW comparison *%
+
+ Tile-based architectures can consume less bandwidth for this basic operation
+ since they ideally handle the depth and color clears and the depth buffer
+ reads within the framebuffer cache.  Use of the
+ EXT\_discard\_framebuffer\cite{EXT_discard_framebuffer} extension saves
+ additional bandwidth because it means the calculated depth buffer never needs
+ to be written back to external memory from the framebuffer cache once the
+ frame is complete. So a tile-based architecture will consume at least 188-377
+ MBps for basic clear-fill-and-display operation.
 
 \index{color depth}
 
@@ -279,19 +302,43 @@ textures makes them friendlier to texture caching and memory bandwidth,
 increasing run-time performance. 
 
 One complication is that there are multiple incompatible formats for texture
-compression supported via OpenGL ES2 extensions.  Example formats are S3TC,
-available on NVIDIA Tegra, and PVRTC, available on ImaginationTech SGX
-\cite{Motorola11}.
+compression supported via OpenGL ES2 extensions.  Example formats are ETC,
+available on most Android 2.2 devices, S3TC, available on NVIDIA Tegra, and
+PVRTC, available on ImaginationTech SGX \cite{Motorola11}.
 
-To support texture compression on multiple devices, an application must either
-package multiple versions of its assets and dynamically choose the correct
-ones, or perform the compression at run-time, load-time, or install-time.
-Performing the compression at run- or install-time must be done carefully to
-not slow down the application, and gives up the benefits of improved
-loading-time and disk-space, as well as reduced network bandwidth required to
-download the application.  S3TC has compression ratios between 4:1 and 8:1, so the space saving are substantial.
+To support texture compression formats on multiple devices, an
+application must either package multiple versions of its assets and dynamically
+choose the correct ones, or perform the compression at run-time, load-time, or
+install-time.  Performing the compression at run- or install-time must be done
+carefully to not slow down the application, and gives up the benefits of
+improved loading-time and disk-space, as well as reduced network bandwidth
+required to download the application.  S3TC has compression ratios between 4:1
+and 8:1, so the space and download savings lost are substantial.
 \cite{Domine00}.
 
+As for framebuffer bandwidth, using a texture format with lower precision, like
+RGB565, saves read bandwidth.  Unlike texture compression, this applies to
+textures used as render targets as well.
+
+\subsection{Anti-Aliasing}
+\index{antialiasing} Anti-aliasing improves image quality by refining edges
+that are jagged when rendered.\textit{Super-sampling Anti-aliasing (SSAA)}
+consumes a large amount of extra bandwidth and fragment shading load, since it
+must render the scene to a larger, high-resolution buffer, then down-sample to
+the final image.  \textit{Multi-sample antialiasing (MSAA)} on the other hand
+rasterizes multiple samples per-pixel, and stores a depth and color for each
+sample.  If all samples in a pixel are covered by the same primitive, the
+fragment shader will only be run once for that pixel, and the same color value
+will be writtenfor all samples in that pixel.  These samples are then blended
+to compute the final image. \cite{aths03}
+
+Though using MSAA creates little if any additional fragment shading work or
+texture read bandwidth consumption, it does use a significant amount of
+bandwidth to read and write multiple the samples for pixels.  Tiling
+architectures may be able to store the samples in the framebuffer cache and
+perform this blending before writeback to system memory \cite{POWERVR11}.
+Vendors may perform other optimizations like only storing multiple samples when
+there is non-trivial coverage information.
 \section{Reducing Fragment Workload}
 \label{Jon-McCaffrey-Reducing-Fragment-Workload}
 
@@ -305,8 +352,10 @@ shading can be improved in other ways than just simplifying shading.
 \subsection{Overdraw and Blending}\label{Jon-McCaffrey-Overdraw-And-Blending}
 \index{overdraw}\index{blending}\index{IMR}\index{TBDR} 
 Overdraw is when pixels that have previously been shaded are overwritten by
-later fragments in a scene.  On IMRs, overdraw wastes completed fragment shading,
-since the previous computed pixel value is over-written and lost.  This also results in an additional framebuffer write, when only one final pixel color needed to be written.
+later fragments in a scene.  On IMRs and tiling immediate-mode renderers,
+overdraw wastes completed fragment shading, since the previous computed pixel
+value is over-written and lost. On IMRS, this also results in an additional
+framebuffer write, when only one final pixel color needed to be written.
 
 On IMR GPUs, this extra bandwidth consumption and fragment work can be limited
 by sorting and rendering geometry from front to back.  This is especially
@@ -357,7 +406,7 @@ effects should be carefully weighed for their worth, and are prime candidates
 for optimization.  
 
 A full-screen pass implies at least a read and write of the framebuffer at full
-resolution, which at 16-bit color and a 1024x768 resolution means 188MB/s
+resolution, which at 16-bit color and a 1024x768 resolution means 188MBps
 bandwidth.  Even with tiling architectures, a post-processing pass
 means a round-trip to external memory.  One way to optimize these effects is to
 remove the extra full-screen pass.  Some post-processing effects such as
@@ -376,10 +425,10 @@ framebuffer memory.
 
 \begin{table}[htb]\centering \begin{tabular}{|c||c|c|c|c|} 
 \hline \small{Device} & \small{color\_clear} & \small{vertex\_lighting} & \small{one\_tap\_post} & \small{five\_tap\_post}  \\ \hline 
-\hline \small{Motorola Droid X} & \small{3.67GPps} & \small{234MPps}& \small{5.36MPps\footnotemark[1]} & \small{5.7MPps\footnotemark[1]} \\ 
+\hline \small{Motorola Droid X} & \small{3670GPps} & \small{234MPps}& \small{5.36MPps\footnotemark[1]} & \small{5.7MPps\footnotemark[1]} \\ 
 \hline \small{LG Thunderbolt} & \small{305MPps} & \small{48.7MPps}& \small{30MPps} & \small{20.36MPps} \\ 
-\hline \small{Dell Inspiron 520} & \small{1.92GPps} & \small{231MPps}& \small{139MPps} & \small{120MPps} \\ 
-\hline \small{Desktop System*} & \small{13.8GPps} & \small{2.95GPps}& \small{1.73GPps} & \small{1.29GPps} \\ 
+\hline \small{Dell Inspiron 520} & \small{1920MPps} & \small{231MPps}& \small{139MPps} & \small{120MPps} \\ 
+\hline \small{Desktop System*} & \small{1380MPps} & \small{2950MPps}& \small{1730MPps} & \small{1290MPps} \\ 
 \hline
 \end{tabular} 
 \caption{Performance for different shading and pass configurations.  All tests used 1024x1024 16-bit offscreen depth and color buffers as the main framebuffer, with a 32-bit RGBA intermediate color buffer and 16-bit depth buffer where applicable.  \textit{vertex\_lighting} renders a synthetic scene with lighting computed per-vertex, a per-pixel texture lookup, and 39200 triangles with 0\% overdraw.  \textit{Five\_tap\_post} and \textit{one\_tap\_post} draw the same scene with five- and one- sample full-screen post-processing passes, respectively.  All units are pixels per second.  Desktop system has an Intel Core 2 Quad and NVIDIA 8800 GTS.}
@@ -439,7 +488,7 @@ exactly once.
 One area of optimization with a significant amount of leverage is optimizing
 fragment shaders.  Shaders tend to be fairly small and simple, but the sheer
 number of fragments and amount of floating-point computation makes non-trivial
-fragment shading a major bottleneck on both TBDR and IMR GPUs.  Optimizations
+fragment shading a major bottleneck on both tiling and IMR GPUs.  Optimizations
 here will probably have some effect on visual quality, but it may well be worth
 the gain in performance.
 
@@ -470,27 +519,26 @@ specularity, and normalization from per-fragment to per-vertex and then
 interpolating the results can save performance at the cost of image quality,
 and this is still true for IMRs.
 
-However, for TBDRs, this performance wisdom is more dubious.  This is because
-mobile devices have smaller screens with fewer pixels to be shaded than
-desktop, so per-fragment work is less onerous, and because TBDRs must perform
-all vertex computations for each tile \cite{Apple11}.  TBDRs are more likely to
-be vertex-bound, and Unity recommends 40k or less vertices on recent iOS
-devices, which use Imagination Tech SGX GPUs \cite{Unity11}.
+However, for tilers, this performance wisdom is more dubious.
+This is because mobile devices have smaller screens with fewer pixels to be
+shaded than desktop, so per-fragment work is less onerous, and because tilers
+must perform all vertex computations for each tile \cite{Apple11}.  Tilers are
+more likely to be vertex-bound, and Unity recommends 40k or less vertices on
+recent iOS devices, which use Imagination Tech SGX GPUs \cite{Unity11}.
 
-This means that heavy vertex shaders, even if they save fragment work, may be a
-performance drag on TBDR.  This is particularly true since TBDRs perform
-little-to-no redundant fragment work.  When working with IMRs, lifting
-computation from the fragment shader to the vertex shader is likely a
-performance win, and becoming vertex-bound is less of a concern.
+This means that heavy vertex shaders, even if they save fragment work, may be
+a performance drag on tiling architectures.  This is particularly true for
+TBDRs perform little-to-no redundant fragment work.  When working with IMRs,
+lifting computation from the fragment shader to the vertex shader is likely
+a performance win, and becoming vertex-bound is less of a concern.
 
 Another consideration in the relationship between vertex and fragment shaders
 is that adding too many additional varyings can be a drag on performance, since
-they must all be interpolated, and a large amount of per-fragment memory limits
-the number of fragments that can be in-flight at once.  Large numbers of
-varyings shrink the number of vertices that can be stored in the post-transform
-cache.  This can cause thrashing and severely affect the performance of vertex
-shading.  So thinning the interface between vertex and fragment shading is
-valuable.
+they must all be interpolated, and a large amount of per-fragment memory may
+limit the number of fragments that can be in-flight at once.  A large number of
+varyings may also thrash the post-transform cache, which stores the results of
+vertex shading, making vertex processing more expensive.  So thinning the
+interface between vertex and fragment shading can be valuable.
 
 Vertex processing is more of a bandwidth drain on tiling architectures, since
 the attributes probably are pulled again for each tile, unless they hit in a
