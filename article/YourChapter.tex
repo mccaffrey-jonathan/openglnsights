@@ -205,7 +205,8 @@ bandwidth estimated by \textit{memset}.  GPU bandwidth estimated by glClear
 followed by glFinish.  Desktop system has an Intel Core 2 Quad and NVIDIA
 GeForce 8800 GTS.  The desktop system has significantly more bandwidth
 available to the GPU than to the CPU, and CPU and GPU memory accesses do not
-interfere with each other.}
+interfere with each other.  The Droid X GPU write bandwidth score is high enough
+that it may not actually be writing the framebuffer each time (ie coalescing redundant clears or setting a cleared flag)}
 \label{JonMcCaffrey:bandwidth} \end{table}
 
 \subsection{Relative Display Sizes}\label{Jon-McCaffrey:relative-display-sizes}
@@ -219,8 +220,8 @@ mobile devices often have a higher pixel density to be viewable at a close
 distance.
 
 \begin{table}[htb]\centering \begin{tabular}{|c||c|c|c|} 
-\hline \small{Device} & \small{Resolution} & \small{\% of 1280x1024 (20 in. monitory)} & \small{\% of 1920x1080 (24 in. monitor)}  \\ \hline 
-\hline \small{Motorola XOOM} & \small{1280x800} & \small{\%78.13} & \small{\%49.38}\\ 
+\hline \small{Device} & \small{Resolution} & \small{\% of 1280x1024 } & \small{\% of 1920x1080 }  \\ \hline 
+\hline \small{Motorola Xoom} & \small{1280x800} & \small{\%78.13} & \small{\%49.38}\\ 
 \hline \small{Apple iPad 2} & \small{1024x768} & \small{\%58.63} & \small{\%37.06}\\ 
 \hline \small{Apple iPhone 4S} & \small{960x640} & \small{\%46.89} & \small{\%29.63}\\
 \hline \small{Samsung Galaxy S2} & \small{800x480} & \small{\%30.00} & \small{\%18.52}\\ \hline
@@ -465,27 +466,27 @@ and write out a new filtered value, each effect can pass its computed value to
 the next effect in the same shader.  This saves redundant round-trips to
 framebuffer memory.
 
-\begin{table}[htb]\centering \begin{tabular}{|c||c|c|c|c|c|} 
-\hline \small{Device} & \small{clear} & \small{vtx\_lgt} & \small{frg\_lgt} & \small{one\_tap} & \small{five\_tap}  \\ \hline 
-\hline \small{Motorola Xoom} & \small{626Mps} & \small{52.4MPps}&  \small{24.08MPps} & \small{26.13MPps\footnotemark[1]} & \small{3.17MPps\footnotemark[1]} \\ 
-\hline \small{Motorola Droid X} & \small{3670MPps} & \small{234MPps}& & \small{5.36MPps\footnotemark[1]} & \small{5.7MPps\footnotemark[1]} \\ 
-\hline \small{LG Thunderbolt} & \small{305MPps} & \small{48.7MPps}& & \small{30MPps} & \small{20.36MPps} \\ 
-\hline \small{Dell Inspiron 520} & \small{1920MPps} & \small{231MPps}& & \small{139MPps} & \small{120MPps} \\ 
-\hline \small{Desktop System*} & \small{1380MPps} & \small{2950MPps}& & \small{1730MPps} & \small{1290MPps} \\ 
+\begin{table}[htb]\centering \begin{tabular}{|c|c|c|c|c|c|c|} 
+\hline \small{Device} & \small{GPU Arch} & \small{clear} & \small{vtx\_lgt} & \small{frg\_lgt} & \small{one\_tap} & \small{five\_tap}  \\ \hline 
+\hline \small{Motorola Xoom} & IMR &\small{626Mps} & \small{52.4MPps}&  \small{24.08MPps} & \small{26.13MPps\footnotemark[1]} & \small{3.17MPps\footnotemark[1]} \\ 
+\hline \small{Motorola Droid X} & TBDR & \small{3670MPps} & \small{234MPps}& \small{62.9MPps} & \small{5.36MPps\footnotemark[1]} & \small{5.7MPps\footnotemark[1]} \\ 
+\hline \small{LG Thunderbolt} & TB IMR &\small{305MPps} & \small{48.7MPps}& & \small{30MPps} & \small{20.36MPps} \\ 
+\hline \small{Dell Inspiron 520} & IMR & \small{1920MPps} & \small{231MPps}& \small{204MPps} & \small{139MPps} & \small{120MPps} \\ 
+\hline \small{Desktop System*} & IMR &\small{1380MPps} & \small{2950MPps}& \small{1920MPps} & \small{1730MPps} & \small{1290MPps} \\ 
 \hline
 \end{tabular}  \caption{Performance for different shading and pass
 configurations.  All tests used 1024x1024 16-bit offscreen depth and color
 buffers as the main framebuffer, with a 32-bit RGBA intermediate color buffer
-and 16-bit depth buffer where applicable.  \textit{vtx\_lgt} renders a synthetic
-scene with lighting computed per-vertex, a per-pixel texture lookup, and 39200
-triangles with 0\% overdraw.  \textit{frg\_lgt} uses the same scene and
+and 16-bit depth buffer where applicable.  \textit{clear} performs color buffer
+clear operations.  \textit{vtx\_lgt} renders a synthetic scene with lighting
+computed per-vertex, a per-pixel texture lookup, and 39200 triangles with 0\%
+overdraw.  \textit{frg\_lgt} uses the same scene and
 calculates the diffuse illumination in the fragment shader.
 \textit{five\_tap} and \textit{one\_tap} draw the vertex\_lighting
 scene with five- and one- sample full-screen post-processing passes,
 respectively.  All units are pixels per second.  Desktop system has an Intel
-Core 2 Quad and NVIDIA 8800 GTS.} \footnotetext[1] {The DroidX
-post-processing scores are low enough that I suspect an implicit render
-target-to-texture format conversion must be taking place}
+Core 2 Quad and NVIDIA 8800 GTS.  The Droid X \textit{clear} scores are high enough
+that it may not actually be writing the framebuffer each time (ie coalescing redundant clears or setting a cleared flag).  }
 \label{JonMcCaffrey:pass_performance} \end{table}
 
 \index{deferred shading}
