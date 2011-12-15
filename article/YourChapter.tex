@@ -81,6 +81,12 @@ work done and writing the framebuffer again.  This behavior is known as overdraw
 Even without overdraw, the depth buffer still must be read for later fragments 
 generated at a pixel location in order to reject them.
 
+\begin{figure}[h!]
+    \caption{IMRs render each primitive only once, and render the entire framebuffer in a single pass}
+    \centering
+        \includegraphics{mccaffreyFigs/IMR.eps}
+\end{figure}
+
 Tilers instead divide the framebuffer into tiles of pixels.  All draw
 commands are buffered.  At the end of the frame, for each tile, all
 geometry for the scene is re-rendered and rasterized into a framebuffer cache
@@ -90,14 +96,23 @@ allows for fast depth-buffer access, since depth-testing and depth writes can
 be performed with the local framebuffer cache.  The end goal is to limit the
 memory bandwidth consumed by color and depth buffer access.
 
+\begin{figure}[h!]
+    \caption{Tiling architectures divide the scene into tiles, and render all primitives into each tile using a fast framebuffer cache.}
+    \centering
+        \includegraphics{mccaffreyFigs/tiling.eps}
+\end{figure}
+
 Tiling doesn't come for free.  The scene geometry must be re-transformed and
 clipped for each tile, so to maintain a balanced pipeline additional vertex
 processing power is needed.  Bandwidth will also be spent re-reading vertex
 data for each tile.  The digital logic for tiling, repeated vertex shading,
 and a fast framebuffer cache also takes transistors from raw fragment shading
-horsepower.  For more tips on performance tuning specific to tiling
-architectures, see \textit{Performance Tuning for Tile-Based Architectures}
-\cite{Chapter TODO} 
+horsepower.  Tiling also requires buffering commands deeply, leading to a more
+complicated hardware and driver implementation, and the fact that the rendering
+of each primitive cannot be neatly placed in single interval of time makes
+performance analysis more difficult.  For more tips on performance tuning
+specific to tiling architectures, see \textit{Performance Tuning for
+Tile-Based Architectures} \cite{Chapter TODO} 
 
 \index{Tile-Based Deferred Rendering} There is an additional group of tilers
 which use \textit{Tile-Based Deferred Rendering (TBDR)}, like the Imagination Tech SGX
@@ -176,7 +191,7 @@ Besides limiting performance, memory accesses external to the GPU consume a
 great deal of power, sometimes more than the computation itself.
 \cite{Antochi04}.
 
-\begin{table}[htb]\centering \begin{tabular}{|c|c|c|} 
+\begin{table}[htb]\centering \begin{tabular}{|c||c|c|} 
 \hline \small{Device} & \small{CPU Write Bandwidth} & \small{GPU Write Bandwidth}   \\ \hline 
 \hline \small{Motorola Xoom} & \small{2.6GBps} & \small{1.252GBps} \\ 
 \hline \small{Motorola Droid X} & \small{1.4GBps} & \small{6.8GBps} \\ 
@@ -203,9 +218,9 @@ resolutions of desktop displays.  Even though the displays sizes are smaller,
 mobile devices often have a higher pixel density to be viewable at a close
 distance.
 
-\begin{table}[htb]\centering \begin{tabular}{|c|c|c|c|} 
+\begin{table}[htb]\centering \begin{tabular}{|c||c|c|c|} 
 \hline \small{Device} & \small{Resolution} & \small{\% of 1280x1024 (20 in. monitory)} & \small{\% of 1920x1080 (24 in. monitor)}  \\ \hline 
-\small{Motorola XOOM} & \small{1280x800} & \small{\%78.13} & \small{\%49.38}\\ 
+\hline \small{Motorola XOOM} & \small{1280x800} & \small{\%78.13} & \small{\%49.38}\\ 
 \hline \small{Apple iPad 2} & \small{1024x768} & \small{\%58.63} & \small{\%37.06}\\ 
 \hline \small{Apple iPhone 4S} & \small{960x640} & \small{\%46.89} & \small{\%29.63}\\
 \hline \small{Samsung Galaxy S2} & \small{800x480} & \small{\%30.00} & \small{\%18.52}\\ \hline
@@ -363,25 +378,45 @@ overdraw wastes completed fragment shading, since the previous computed pixel
 value is over-written and lost. On IMRS, this also results in an additional
 framebuffer write, when only one final pixel color needed to be written.
 
+\begin{figure}[h!]
+    \caption{In this overdraw case, pixels that are covered by later primitives are shaded more than once}
+    \centering
+        \includegraphics{mccaffreyFigs/default_order.eps}
+\end{figure}
+
 On IMR GPUs, this extra bandwidth consumption and fragment work can be limited
 by sorting and rendering geometry from front to back.  This is especially
 practical for static geometry which can be processed into a spatial data
 structure during an asset export step.  An additional heuristic for games is to
 render the player character first and the sky-box last.
-\cite{Pranckevicius11a}.  For batches where front-to-back object sorting is not
+\cite{Pranckevicius11a}.  
+
+\begin{figure}[h!]
+    \caption{By ordering front to back, we know longer shade the covered pixels more than once}
+    \centering
+        \includegraphics{mccaffreyFigs/order_front_to_back.eps}
+\end{figure}
+
+For batches where front-to-back object sorting is not
 practical, for example with complicated, interlocking geometry or heavy use of
 alpha-testing, a depth prepass can be used to eliminate redundant pixel
 calculations, at the cost of repeated vertex shading work, primitive assembly,
 and depth-buffer access.
 
-The idea of a depth-pre-pass is to bind a trivial fragment shader and render
+The idea of a depth pre-pass is to bind a trivial fragment shader and render
 the scene with color writes disabled.  Depth calculation, testing, and writes
 proceed as normal and the final pixel depth is resolved.  The normal
 fragment shader is then bound and the scene is re-rendered.  In this manner,
 only the final fragments that affect the scene color are rendered.  This only
 works for opaque objects.
 
-Even without overdraw, heavy amounts of overlapping geometry can still be
+\begin{figure}[h!]
+    \caption{A depth pre-pass resolves ordering in the depth buffer before performing non-trivial fragment shading.}
+    \centering
+        \includegraphics{mccaffreyFigs/depth_pre_pass.eps}
+\end{figure}
+
+Even without overdraw, on IMRs heavy amounts of overlapping geometry can still be
 expensive because of the depth-buffer reads needed to reject pixels.  Primitive
 assembly, rasterization, and the pixel reject rate can also become limiting for
 large areas like sky-boxes \cite{Pranckevicius11a}.
@@ -430,17 +465,27 @@ and write out a new filtered value, each effect can pass its computed value to
 the next effect in the same shader.  This saves redundant round-trips to
 framebuffer memory.
 
-\begin{table}[htb]\centering \begin{tabular}{|c||c|c|c|c|} 
-\hline \small{Device} & \small{color\_clear} & \small{vertex\_lighting} & \small{fragment\_lighting} & \small{one\_tap\_post} & \small{five\_tap\_post}  \\ \hline 
+\begin{table}[htb]\centering \begin{tabular}{|c||c|c|c|c|c|} 
+\hline \small{Device} & \small{clear} & \small{vtx\_lgt} & \small{frg\_lgt} & \small{one\_tap} & \small{five\_tap}  \\ \hline 
 \hline \small{Motorola Xoom} & \small{626Mps} & \small{52.4MPps}&  \small{24.08MPps} & \small{26.13MPps\footnotemark[1]} & \small{3.17MPps\footnotemark[1]} \\ 
 \hline \small{Motorola Droid X} & \small{3670MPps} & \small{234MPps}& & \small{5.36MPps\footnotemark[1]} & \small{5.7MPps\footnotemark[1]} \\ 
 \hline \small{LG Thunderbolt} & \small{305MPps} & \small{48.7MPps}& & \small{30MPps} & \small{20.36MPps} \\ 
 \hline \small{Dell Inspiron 520} & \small{1920MPps} & \small{231MPps}& & \small{139MPps} & \small{120MPps} \\ 
 \hline \small{Desktop System*} & \small{1380MPps} & \small{2950MPps}& & \small{1730MPps} & \small{1290MPps} \\ 
 \hline
-\end{tabular} 
-\caption{Performance for different shading and pass configurations.  All tests used 1024x1024 16-bit offscreen depth and color buffers as the main framebuffer, with a 32-bit RGBA intermediate color buffer and 16-bit depth buffer where applicable.  \textit{vertex\_lighting} renders a synthetic scene with lighting computed per-vertex, a per-pixel texture lookup, and 39200 triangles with 0\% overdraw.  fragment\_lighting uses the same scene and calculates the diffuse illumination in the fragment shader.  \textit{Five\_tap\_post} and \textit{one\_tap\_post} draw the vertex\_lighting scene with five- and one- sample full-screen post-processing passes, respectively.  All units are pixels per second.  Desktop system has an Intel Core 2 Quad and NVIDIA 8800 GTS.}
-\footnotetext[1] {The DroidX post-processing scores are low enough that I suspect an implicit render target-to-texture format conversion must be taking place}
+\end{tabular}  \caption{Performance for different shading and pass
+configurations.  All tests used 1024x1024 16-bit offscreen depth and color
+buffers as the main framebuffer, with a 32-bit RGBA intermediate color buffer
+and 16-bit depth buffer where applicable.  \textit{vtx\_lgt} renders a synthetic
+scene with lighting computed per-vertex, a per-pixel texture lookup, and 39200
+triangles with 0\% overdraw.  \textit{frg\_lgt} uses the same scene and
+calculates the diffuse illumination in the fragment shader.
+\textit{five\_tap} and \textit{one\_tap} draw the vertex\_lighting
+scene with five- and one- sample full-screen post-processing passes,
+respectively.  All units are pixels per second.  Desktop system has an Intel
+Core 2 Quad and NVIDIA 8800 GTS.} \footnotetext[1] {The DroidX
+post-processing scores are low enough that I suspect an implicit render
+target-to-texture format conversion must be taking place}
 \label{JonMcCaffrey:pass_performance} \end{table}
 
 \index{deferred shading}
