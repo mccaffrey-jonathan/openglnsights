@@ -75,12 +75,19 @@ allows for fast depth-buffer access, since depth-testing and depth writes can
 be performed with the local framebuffer cache.  The end goal is to limit the
 memory bandwidth consumed by color and depth buffer access.
 
-Tiling doesn't come for free.  The scene geometry must be re-rendered for each tile, so to maintain a balanced pipeline additional vertex processing power is needed.  If pre-transform vertex attribute caches aren't large enough, bandwidth will also be spent re-reading vertex data for each tile.  The digital logic for tiling, repeated vertex shading, and a fast framebuffer cache also takes transistors from raw fragment shading horsepower.  For more tips on performance tuning specific to tiling architectures, see \textit{Performance Tuning for Tile-Based Architectures} \cite{Chapter TODO}
+Tiling doesn't come for free.  The scene geometry must be re-transformed and
+clipped for each tile, so to maintain a balanced pipeline additional vertex
+processing power is needed.  Bandwidth will also be spent re-reading vertex
+data for each tile.  The digital logic for tiling, repeated vertex shading, and
+a fast framebuffer cache also takes transistors from raw fragment shading
+horsepower.  For more tips on performance tuning specific to tiling
+architectures, see \textit{Performance Tuning for Tile-Based Architectures}
+\cite{Chapter TODO}
 
 \index{Tile-Based Deferred Rendering} There is an additional group of tilers
-which use \textit{Tile-Based Deferred Rendering}, including the SGX family.
-The idea is to rasterize all primitives in a tile before performing any
-fragment shading.  This allows \textit{Hidden Surface Removal (HSR)} and
+which use \textit{Tile-Based Deferred Rendering}, like the Imagination Tech SGX
+family.  The idea is to rasterize all primitives in a tile before performing
+any fragment shading.  This allows \textit{Hidden Surface Removal (HSR)} and
 depth-testing to be performed in a fast framebuffer cache before any fragment
 shading work is done.  Assuming opaque geometry, each pixel is then shaded and
 written to the framebuffer exactly once.
@@ -93,12 +100,13 @@ Architecture}\label{Jon-McCaffrey:differences-in-memory-architecture}
 
 On desktop systems, middle-to-high-end GPUs are discrete devices which
 communicate with the rest of the system via a peripheral bus like
-\textit{PCIe}.  For good performance, this means that GPUs must include their
-own dedicated memory, since accessing system memory through a peripheral bus
-for all memory accesses would be too slow in terms of bandwidth and latency.
-While this increases cost, it is an optimization opportunity since this memory and 
-its configuration, controller, caching, and geometry
-can be optimized for graphics workloads.
+\textit{PCIe}, althought some desktop CPUs are now shipping with capable
+integrated GPUs, like the AMD Llano processors.  For good performance, this
+means that GPUs must include their own dedicated memory, since accessing system
+memory through a peripheral bus for all memory accesses would be too slow in
+terms of bandwidth and latency.  While this increases cost, it is an
+optimization opportunity since this memory and its configuration, controller,
+caching, and geometry can be optimized for graphics workloads.
 
 For example, the NVIDIA \textit{Fermi} architecture uses GDDR5 memory that is
 heavily partitioned \cite{Walton10} to allow for a wide memory interface.
@@ -161,7 +169,12 @@ great deal of power, sometimes more than the computation itself.
 \hline \small{Desktop System} & \small{14.2GBps} & \small{25.7GBps}\\
 \hline
 \end{tabular} 
-\caption{Write bandwidth for CPU and GPU on different devices.  CPU write bandwidth estimated by \textit{memset}.  GPU bandwidth estimated by glClear+glFinish.  Desktop system has an Intel Core 2 Quad and NVIDIA GeForce 8800 GTS.  The desktop system has significantly more bandwidth available to the GPU than to the CPU, and CPU and GPU memory accesses do not interfere with each other.}
+\caption{Write bandwidth for CPU and GPU on different devices.  CPU write
+bandwidth estimated by \textit{memset}.  GPU bandwidth estimated by glClear
+followed by glFinish.  Desktop system has an Intel Core 2 Quad and NVIDIA
+GeForce 8800 GTS.  The desktop system has significantly more bandwidth
+available to the GPU than to the CPU, and CPU and GPU memory accesses do not
+interfere with each other.}
 \label{JonMcCaffrey:bandwidth} \end{table}
 
 \subsection{Relative Display Sizes}\label{Jon-McCaffrey:relative-display-sizes}
@@ -472,44 +485,45 @@ performance win, and becoming vertex-bound is less of a concern.
 
 Another consideration in the relationship between vertex and fragment shaders
 is that adding too many additional varyings can be a drag on performance, since
-they must all be interpolated, and a large amount of per-fragment memory may
-limit the number of fragments that can be in-flight at once.  A large number of
-varyings may also thrash the post-transform cache, which stores the results of
-vertex shading, making vertex processing more expensive.  So thinning the
-interface between vertex and fragment shading can be valuable.
+they must all be interpolated, and a large amount of per-fragment memory limits
+the number of fragments that can be in-flight at once.  Large numbers of
+varyings shrink the number of vertices that can be stored in the post-transform
+cache.  This can cause thrashing and severely affect the performance of vertex
+shading.  So thinning the interface between vertex and fragment shading is
+valuable.
 
 Vertex processing is more of a bandwidth drain on tiling architectures, since
-the attributes probably are pulled again for each tile (unless they hit in a
-pre- or post- transform cache)  To lower this bandwidth, a lower-precision
-buffer format may be used such as \textit{OES\_vertex\_half\_float}.
-Interleaved vertex data, which interleaves the attributes for each vertex in
-the same buffer, is also much more efficient to fetch, since an entire vertex
-can be fetched in one linear read \cite{Apple11}.  If there is a pre-transform
-vertex attribute cache, which stores fetched vertex attributes (with some
-locality), this will make more efficient use of it.
+the attributes probably are pulled again for each tile, unless they hit in a
+pre- or post- transform cache.  To lower this bandwidth, use a lower-precision
+buffer format such as \textit{OES\_vertex\_half\_float}.  Interleaved vertex
+data, which interleaves the attributes for each vertex in the same buffer, is
+also more efficient for attribute fetch, since an entire vertex can be fetched
+in one linear read \cite{Apple11}.  If there is a pre-transform vertex
+attribute cache, which stores fetched vertex attributes and the surrounding
+data, this will make more efficient use of it, since spatial locality in the
+cache means less data will have to be fetched from DRAM.
 
 \section{Conclusion}\label{Jon-McCaffrey-Conclusion}
 
-OpenGL ES is a fundamental component of the modern mobile experience (for UI
-rendering and composition) \cite{Guy11} and presents a huge market and
+OpenGL ES is a fundamental component of the modern mobile experience, for UI
+rendering and composition, \cite{Guy11} and presents a huge market and
 potential impact for OpenGL developers.  However, driven by explicit consumer
 demand for long battery life and slender devices on one hand, and large,
 brilliant displays with perfectly smooth rendering on the other, performance
 must be a dominant consideration during development.  The wide range of devices
-in the market, with differing in age, resolution, and capability, only make
+in the market, differing in age, resolution, and capability, only make
 this more difficult.
 
 One important question is if the significant difference in performance between
 mobile and desktop GPUs will continue to be a dominating consideration, or if
-this is something something that the steady march of semiconductor process and
+this is something that the steady march of semiconductor process and
 architectural improvements will soon make irrelevant.  Looking at the projected
 roadmaps for mobile GPU vendors, the compute power of mobile GPUs should indeed
-increase significantly over the next few years.  However, other limits,
-including bandwidth and power consumption, are more fundamental and cannot be
-conquered as easily.
+climb over the next few years.  However, other limits, including bandwidth and
+power consumption, are more fundamental and cannot be conquered as easily.
 
 The expected workloads of mobile devices are also changing.  Sprite-based games
-and 2-d workloads are still very important, but several publishers have
+and 2D workloads are still very important, but several publishers have
 produced mobile ports of desktop game engines, and games with console or
 desktop levels of rich game worlds and visual quality.  These games raise the
 bar for what is considered possible and now expected on mobile systems, and
@@ -519,11 +533,11 @@ measured assessment of a platform's capabilities and limitations paired with an
 understanding and quantification of the costs of different effects and
 rendering techniques.  
 
-In short, while developing a fast and efficient application for mobile devies
-takes thought, careful measurement and budgeting, and creative corner-cutting,
-with a consciousness to the costs and limitations involved, developers can
-deliver beautiful and compelling graphics and an experience users can barely
-believe is possible.
+While developing a fast and efficient application for mobile devies takes
+thought, careful measurement and budgeting, and creative corner-cutting, with a
+consciousness to the costs and limitations involved, developers can deliver
+beautiful and compelling graphics and an experience users can barely believe is
+possible.
 
 \bibliographystyle{akpbib} \bibliography{YourBib}
 

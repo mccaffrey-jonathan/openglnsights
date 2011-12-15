@@ -28,6 +28,8 @@ layouthoffset=0.5in,
 
 \usepackage{xcolor}
 \usepackage{textcomp}
+\usepackage{etoolbox}
+\apptocmd{\sloppy}{\hbadness 10000\relax}{}{}
 
 \lstdefinelanguage{GLSL}
 {
