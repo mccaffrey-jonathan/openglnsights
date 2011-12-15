@@ -32,8 +32,6 @@
 #define  LOGI(...)  __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
 #define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)
 
-
-
 static void printGLString(const char *name, GLenum s) {
     const char *v = (const char *) glGetString(s);
     LOGI("GL %s = %s\n", name, v);
@@ -45,18 +43,19 @@ static int setupGraphics(int w, int h) {
     printGLString("Renderer", GL_RENDERER);
     printGLString("Extensions", GL_EXTENSIONS);
 
-    FILE* tmp = tmpfile();
+    //FILE* tmp = tmpfile();
 
-    RunAllTests(tmp);
+    //RunAllTests(tmp);
+    RunAllTests(stdout);
 
-    rewind(tmp);
-    char str[4096];
-    memset(str, '\0', sizeof(str));
+    //rewind(tmp);
+    //char str[4096];
+    //memset(str, '\0', sizeof(str));
 
-    while(!feof(tmp)) {
-        fgets(str, 4095,tmp);
-        LOGI(str);
-    }
+    //while(!feof(tmp)) {
+    //    fgets(str, 4095,tmp);
+    //    LOGI(str);
+    //}
     LOGI("Test suite complete");
 
     return 1;

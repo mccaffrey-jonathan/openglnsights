@@ -2,31 +2,49 @@
 #include "platform/time.h"
 #include "platform/gl.h"
 
+const char* errstrs [] = {
+    "SUCCESS",
+    "FEATURE_UNSUPPORTED",
+    "OUT_OF_MEMORY",
+    "NULL_POINTER",
+    "OUT_OF_BOUNDS",
+    "INIT_FAILED",
+    "SHADER_COMPILATION_FAILED",
+    "SHADER_LINK_FAILED",
+    "INVALID_ATTRIBUTE",
+    "INVALID_UNIFORM",
+    "UNKNOWN_ERROR",
+};
+    
+
 static void PrintResult(const TestCase* test,
         const TestResult* res,
         FILE* output)
 {
+    LOGI("Printing results");
     fprintf(output, "%s: ", test->name);
     //TODO improve error reporting
     if (res->err == SUCCESS) {
         //TODO add units
-        fprintf(output, "%s %lld in %lld ms",
-                "SUCCESS",
-                res->report.count,
-                res->elapsed);
         LOGI("%s %s %lld in %lld ms",
                 test->name,
                 "SUCCESS",
                 res->report.count,
                 res->elapsed);
+        fprintf(output, "%s %lld in %lld ms",
+                "SUCCESS",
+                res->report.count,
+                res->elapsed);
     } else {
-        fprintf(output, "%s", "TODO, improve error reporting");
+        LOGI("ERROR %s", errstrs[res->err]);
+        fprintf(output, "ERROR %s", errstrs[res->err]);
     }
     fprintf(output, "%s", "\n");
 }
 
 static TestResult RunTest(const TestCase* test)
 {
+    LOGI("Starting %s", test->name);
     TestData data = {
         .priv = NULL,
     };
@@ -37,13 +55,16 @@ static TestResult RunTest(const TestCase* test)
        .count = 0,
     };
 
+    LOGI("Performing setup");
     err = test->setup(&data);
     if (err != SUCCESS)
         goto finish;
+    LOGI("Performing warmup");
     err = test->warmup(&data);
     if (err != SUCCESS)
         goto finish;
 
+    LOGI("Running");
     int64_t start = TimeMillis();
     err = test->run(&data);
     if (err != SUCCESS)
@@ -51,6 +72,7 @@ static TestResult RunTest(const TestCase* test)
     int64_t end = TimeMillis();
     elapsed = end - start;
     
+    LOGI("Report");
     err = test->report(&data, &work);
     if (err != SUCCESS)
         goto finish;
@@ -59,9 +81,11 @@ finish:
     //Do not record err of teardown
     //Since we can successfully tear-down a broken set-up
     //Teardown should be very conservative
+    LOGI("Teardown");
     test->teardown(&data);
 
 
+    LOGI("complete");
     return (TestResult)
     {
         .report = work,
@@ -75,6 +99,7 @@ extern const uint32_t num_tests;
 
 void RunAllTests(FILE* output)
 {
+    LOGI("Running all tests");
 
     TestError platform_err = GlPlatformSetup();
     if (platform_err != SUCCESS) {

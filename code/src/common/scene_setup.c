@@ -69,9 +69,51 @@ static GLchar frg [] =
 "\n"
 "void main() {\n"
 //"    gl_FragColor = vec4(vec3(0.0,0.0,0.5) + 0.5*color*texture2D(texture1, tCoord).xyz, 1.0);\n" //Offset to make shader effect obvious
-"    gl_FragColor = vec4(vec3(0.0,0.0,0.5) + 0.500001*color.xyz + 0.000001*texture2D(texture1, tCoord).xyz, 1.0);\n" 
+"    gl_FragColor = vec4(vec3(0.0,0.0,0.5) + 0.500001*color.xyz + 0.01*texture2D(texture1, tCoord).xyz, 1.0);\n" 
 "}\n"
 ;
+
+static GLchar vtxForFrag [] =
+"precision mediump float;\n"
+"uniform mat4 uMVPMatrix;\n"
+"\n"
+"attribute vec4 aPosition;\n"
+"attribute vec3 aNormal; \n"
+"attribute vec2 textureCoord;\n"
+"\n"
+"varying vec2 tCoord;\n"
+"varying vec3 EyespaceNormal;\n"
+"varying vec4 position;\n"
+"\n"
+"void main() {\n"
+"    tCoord = textureCoord;\n"
+"    EyespaceNormal = vec3(uMVPMatrix * vec4(aNormal, 1.0));\n"
+"    vec4 posit = uMVPMatrix * aPosition; \n"
+"    gl_Position = posit; \n"
+"    position = posit; \n"
+"}\n";
+
+//TODO go back to normal color
+static GLchar frgForFrag [] =
+"precision mediump float;\n"
+"\n"
+"uniform vec4 lightPos;\n"
+"uniform vec4 matDiffuse;\n"
+
+"uniform sampler2D texture1; // color texture\n"
+"\n"
+"varying vec2 tCoord;\n"
+"varying vec3 EyespaceNormal;\n"
+"varying vec4 position;\n"
+"\n"
+"void main() {\n"
+"    vec3 lightDir = lightPos.xyz - position.xyz;\n"
+"    vec3 N = normalize(EyespaceNormal);\n"
+"    vec3 L = normalize(lightDir);\n"
+"    vec4 diffuseTerm = matDiffuse * max(dot(N, L), 0.0);\n"
+"    vec4 color = diffuseTerm;\n"
+"    gl_FragColor = vec4(vec3(0.0,0.0,0.5) + 0.500001*color.xyz + 0.01*texture2D(texture1, tCoord).xyz, 1.0);\n" 
+"}\n";
 
 TestError SetupDepthAndColorFbo(SceneFramebuffer* fb)
 {
@@ -95,8 +137,10 @@ TestError SetupDepthAndColorFbo(SceneFramebuffer* fb)
             fb->depth);
     glBindFramebuffer(GL_FRAMEBUFFER, fb->fbo);
     TestError err = checkAndReportFramebufferStatus();
-    if (err != SUCCESS)
+    if (err != SUCCESS) {
+        LOGW("framebuffer not set up successfully");
         return err;
+    }
     return SUCCESS;
 }
 
@@ -129,16 +173,20 @@ TestError SetupDepthRBOAndColorTex(SceneFramebuffer* fb)
             fb->depth);
     glBindFramebuffer(GL_FRAMEBUFFER, fb->fbo);
     TestError err = checkAndReportFramebufferStatus();
-    if (err != SUCCESS)
+    if (err != SUCCESS) {
+        LOGW("framebuffer not set up successfully");
         return err;
+    }
     return SUCCESS;
 }
 
 TestError bufferDataSceneVertexGrid(int width, int height) {
 
     SceneVertex* verts = malloc(width*height*sizeof(SceneVertex));
-    if (!verts)
+    if (!verts) {
+        LOGW("framebuffer not set up successfully");
         return OUT_OF_MEMORY;
+    }
 
     //Setup grid of vertices
     for (int i = 0; i < width; i++) {
@@ -191,33 +239,30 @@ TestError bufferDataSceneVertexGrid(int width, int height) {
 
 TestError CompileSceneShaders(ShaderPair* priv)
 {
-    priv->vs = glCreateShader(GL_VERTEX_SHADER);
-    int len = sizeof(vtx);
+    const int vtxLen = sizeof(vtx);
     const GLchar* vtxSrc = vtx;
-    glShaderSource(priv->vs, 1, &vtxSrc, &len);
-    glCompileShader(priv->vs);
-    TestError err = checkAndReportCompilationStatus(priv->vs);
-    if (err != SUCCESS)
-        return err;
-
-    priv->fs = glCreateShader(GL_FRAGMENT_SHADER);
-    len = sizeof(frg);
+    const int frgLen = sizeof(frg);
     const GLchar* frgSrc = frg;
-    glShaderSource(priv->fs, 1, &frgSrc, &len);
-    glCompileShader(priv->fs);
-    err = checkAndReportCompilationStatus(priv->fs);
-    if (err != SUCCESS)
-        return err;
+    return CompileShaders(
+            priv,
+            vtxSrc,
+            vtxLen,
+            frgSrc,
+            frgLen);
+}
 
-    priv->prg = glCreateProgram();
-    glAttachShader(priv->prg, priv->vs);
-    glAttachShader(priv->prg, priv->fs);
-    glLinkProgram(priv->prg);
-    err = checkAndReportLinkStatus(priv->prg);
-    if (err != SUCCESS)
-        return err;
-
-    return SUCCESS;
+TestError CompileSceneShadersFragVersion(ShaderPair* priv)
+{
+    const int vtxLen = sizeof(vtxForFrag);
+    const GLchar* vtxSrc = vtxForFrag;
+    const int frgLen = sizeof(frgForFrag);
+    const GLchar* frgSrc = frgForFrag;
+    return CompileShaders(
+            priv,
+            vtxSrc,
+            vtxLen,
+            frgSrc,
+            frgLen);
 }
 
 void DebugDumpAttribsAndUniforms(GLuint prg)
@@ -232,7 +277,7 @@ void DebugDumpAttribsAndUniforms(GLuint prg)
                 &name_len, &num, &type, name );
         name[name_len] = 0;
         GLuint location = glGetAttribLocation( prg, name );
-        fprintf(stderr, "%d %s %u\n", i, name, location);
+        LOGW("%d %s %u\n", i, name, location);
     }
 
     glGetProgramiv( prg, GL_ACTIVE_UNIFORMS, &total ); 
@@ -244,7 +289,7 @@ void DebugDumpAttribsAndUniforms(GLuint prg)
                 &name_len, &num, &type, name );
         name[name_len] = 0;
         GLuint location = glGetUniformLocation( prg, name );
-        fprintf(stderr, "%d %s %u\n", i, name, location);
+        LOGW("%d %s %u\n", i, name, location);
     }
 
 }
@@ -272,6 +317,7 @@ TestError GetSceneUniformAndAttribLocs(GLuint prg,
     if (attribs->aPosition == -1 ||
             attribs->aNormal == -1 ||
             attribs->textureCoord == -1) {
+        LOGW("Invalid attribute!");
         return INVALID_ATTRIBUTE;
     }
 
@@ -279,6 +325,15 @@ TestError GetSceneUniformAndAttribLocs(GLuint prg,
             uniforms->lightPos == -1 ||
             uniforms->matDiffuse == -1 ||
             uniforms->texture1 == -1) {
+        LOGW("Invalid uniforms! \n    uMVPMatrix: %d" \
+                "\n    lightPost: %d" \
+                "\n    matDiffuse: %d" \
+                "\n    texture1: %d",
+                uniforms->uMVPMatrix,
+                uniforms->lightPos,
+                uniforms->matDiffuse,
+                uniforms->texture1);
+        DebugDumpAttribsAndUniforms(prg);
         return INVALID_UNIFORM;
     }
 
@@ -345,8 +400,10 @@ TestError CreateTexture(GLuint* out)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     GLuint* texdata = 
         malloc(WIDTH*HEIGHT*sizeof(GLuint));
-    if (!texdata)
+    if (!texdata) {
+        LOGW("Out of memory allocating texture");
         return OUT_OF_MEMORY;
+    }
     for (int i = 0; i < WIDTH*HEIGHT; i++) {
         GLuint val = 0xFFFFFFFF; //White?
         texdata[i] = val;
@@ -390,7 +447,7 @@ void DebugDumpPixels()
     for (int i = 0; i < WIDTH; i+=1) {
         for (int j = 0; j < HEIGHT; j+=1) {
             int ind = 3*(i*HEIGHT+j);
-            fprintf(stderr, "%d %f %f %f\n", ind/3, 
+            LOGW("%d %f %f %f\n", ind/3, 
                     pixs[ind+0], pixs[ind+1],pixs[ind+2]);
         }
     }

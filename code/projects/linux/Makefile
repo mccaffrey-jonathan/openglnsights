@@ -25,6 +25,7 @@ COMMON_SRC=${COMMON_PREFIX}/testrunner.c \
 TESTS_PREFIX=../../src/tests
 TESTS_SRC=${TESTS_PREFIX}/trival_pass.c \
 	  ${TESTS_PREFIX}/vertex_lighting.c \
+	  ${TESTS_PREFIX}/fragment_lighting.c \
 	  ${TESTS_PREFIX}/five_tap_post.c \
 	  ${TESTS_PREFIX}/one_tap_post.c \
 	  ${TESTS_PREFIX}/triangle_throughput.c \
