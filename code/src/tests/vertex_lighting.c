@@ -22,8 +22,10 @@ static TestError setup(TestData* data)
     TestError err = SUCCESS;
 
     err = SetupDepthAndColorFbo(&priv->fb);
-    if (err != SUCCESS)
+    if (err != SUCCESS) {
         return err;
+    }
+
 
     err = CompileSceneShaders(&priv->shads);
     if (err != SUCCESS)

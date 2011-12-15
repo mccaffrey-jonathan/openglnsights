@@ -11,7 +11,22 @@ applications and games where, excitingly, OpenGL ES is the \textit{lingua
 franca} for graphics. However, mobile platforms and GPUs have performance
 profiles and characteristics that may be unfamiliar to desktop developers.
 Developers making the transition from desktop to mobile need to be aware of
-these to create the best experience possible for the given hardware resources.
+the limits and capabilities of mobile devices to create the best experience
+possible for the given hardware resources.  This chapter surveys mobile GPU
+design decisions and constraints, then explores how these affect classic
+rendering paradigms.
+
+First, we examine how mobile and desktop GPUs differ in design goals, scale and
+architecture.  We then look at memory bandwidth consumption, which greatly
+affects performance and device power, and break it down into the contributions
+of display, composition, blending, texture access, and anti-aliasing.  After
+that, our focus shifts towards optimizing fragment shading with limited compute
+power.  We look at ways to eliminate shading work entirely if we can or to
+minimize it or render it more efficient if we can't.  
+
+Finally, we discuss the relationship between vertex and fragment shaders and
+how it is affected by different mobile GPU architectures, and end with some
+tips for optimizing vertex data for efficient reads and updates.
 
 \section{Important Differences and Constraints}\label{Jon-McCaffrey:Constraints-Inspire-Creativity}
 
@@ -74,15 +89,6 @@ tile is written out to memory.  This saves redundant framebuffer writes and
 allows for fast depth-buffer access, since depth-testing and depth writes can
 be performed with the local framebuffer cache.  The end goal is to limit the
 memory bandwidth consumed by color and depth buffer access.
-
-Tiling doesn't come for free.  The scene geometry must be re-transformed and
-clipped for each tile, so to maintain a balanced pipeline additional vertex
-processing power is needed.  Bandwidth will also be spent re-reading vertex
-data for each tile.  The digital logic for tiling, repeated vertex shading, and
-a fast framebuffer cache also takes transistors from raw fragment shading
-horsepower.  For more tips on performance tuning specific to tiling
-architectures, see \textit{Performance Tuning for Tile-Based Architectures}
-\cite{Chapter TODO}
 
 Tiling doesn't come for free.  The scene geometry must be re-transformed and
 clipped for each tile, so to maintain a balanced pipeline additional vertex
@@ -172,6 +178,7 @@ great deal of power, sometimes more than the computation itself.
 
 \begin{table}[htb]\centering \begin{tabular}{|c|c|c|} 
 \hline \small{Device} & \small{CPU Write Bandwidth} & \small{GPU Write Bandwidth}   \\ \hline 
+\hline \small{Motorola Xoom} & \small{2.6GBps} & \small{1.252GBps} \\ 
 \hline \small{Motorola Droid X} & \small{1.4GBps} & \small{6.8GBps} \\ 
 \hline \small{LG Thunderbolt} & \small{0.866GBps} & \small{0.518GBps} \\ 
 \hline \small{Dell Inspiron 520} & \small{4.8GBps} & \small{3.8GBps} \\ 
@@ -253,9 +260,8 @@ composited framebuffer, and scan-out).
  consumes 564-752MBps of bandwidth, so even simple use cases consume a
  significant amount of memory bandwidth; anything interesting the application
  does only costs more bandwidth. If a 32-bit framebuffer is used, this number
- will be even greater.  To put this in context, the iPad2 has been benchmarked
- at 2.3GB/s for \textit{stdlib} writes \cite{Shimpi11}.  See
- \ref{JonMcCaffrey:bandwidth} for more comparisons.
+ will be even greater.  This can be a significant portion of the bandwidth available on a mobile device, see \ref{JonMcCaffrey:bandwidth} for bandwidth
+ measurements for some devices.
  %* TODO come up with better BW comparison *%
 
  Tile-based architectures can consume less bandwidth for this basic operation
@@ -425,14 +431,15 @@ the next effect in the same shader.  This saves redundant round-trips to
 framebuffer memory.
 
 \begin{table}[htb]\centering \begin{tabular}{|c||c|c|c|c|} 
-\hline \small{Device} & \small{color\_clear} & \small{vertex\_lighting} & \small{one\_tap\_post} & \small{five\_tap\_post}  \\ \hline 
-\hline \small{Motorola Droid X} & \small{3670GPps} & \small{234MPps}& \small{5.36MPps\footnotemark[1]} & \small{5.7MPps\footnotemark[1]} \\ 
-\hline \small{LG Thunderbolt} & \small{305MPps} & \small{48.7MPps}& \small{30MPps} & \small{20.36MPps} \\ 
-\hline \small{Dell Inspiron 520} & \small{1920MPps} & \small{231MPps}& \small{139MPps} & \small{120MPps} \\ 
-\hline \small{Desktop System*} & \small{1380MPps} & \small{2950MPps}& \small{1730MPps} & \small{1290MPps} \\ 
+\hline \small{Device} & \small{color\_clear} & \small{vertex\_lighting} & \small{fragment\_lighting} & \small{one\_tap\_post} & \small{five\_tap\_post}  \\ \hline 
+\hline \small{Motorola Xoom} & \small{626Mps} & \small{52.4MPps}&  \small{24.08MPps} & \small{26.13MPps\footnotemark[1]} & \small{3.17MPps\footnotemark[1]} \\ 
+\hline \small{Motorola Droid X} & \small{3670MPps} & \small{234MPps}& & \small{5.36MPps\footnotemark[1]} & \small{5.7MPps\footnotemark[1]} \\ 
+\hline \small{LG Thunderbolt} & \small{305MPps} & \small{48.7MPps}& & \small{30MPps} & \small{20.36MPps} \\ 
+\hline \small{Dell Inspiron 520} & \small{1920MPps} & \small{231MPps}& & \small{139MPps} & \small{120MPps} \\ 
+\hline \small{Desktop System*} & \small{1380MPps} & \small{2950MPps}& & \small{1730MPps} & \small{1290MPps} \\ 
 \hline
 \end{tabular} 
-\caption{Performance for different shading and pass configurations.  All tests used 1024x1024 16-bit offscreen depth and color buffers as the main framebuffer, with a 32-bit RGBA intermediate color buffer and 16-bit depth buffer where applicable.  \textit{vertex\_lighting} renders a synthetic scene with lighting computed per-vertex, a per-pixel texture lookup, and 39200 triangles with 0\% overdraw.  \textit{Five\_tap\_post} and \textit{one\_tap\_post} draw the same scene with five- and one- sample full-screen post-processing passes, respectively.  All units are pixels per second.  Desktop system has an Intel Core 2 Quad and NVIDIA 8800 GTS.}
+\caption{Performance for different shading and pass configurations.  All tests used 1024x1024 16-bit offscreen depth and color buffers as the main framebuffer, with a 32-bit RGBA intermediate color buffer and 16-bit depth buffer where applicable.  \textit{vertex\_lighting} renders a synthetic scene with lighting computed per-vertex, a per-pixel texture lookup, and 39200 triangles with 0\% overdraw.  fragment\_lighting uses the same scene and calculates the diffuse illumination in the fragment shader.  \textit{Five\_tap\_post} and \textit{one\_tap\_post} draw the vertex\_lighting scene with five- and one- sample full-screen post-processing passes, respectively.  All units are pixels per second.  Desktop system has an Intel Core 2 Quad and NVIDIA 8800 GTS.}
 \footnotetext[1] {The DroidX post-processing scores are low enough that I suspect an implicit render target-to-texture format conversion must be taking place}
 \label{JonMcCaffrey:pass_performance} \end{table}
 

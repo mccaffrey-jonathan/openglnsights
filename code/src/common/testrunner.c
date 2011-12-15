@@ -2,6 +2,21 @@
 #include "platform/time.h"
 #include "platform/gl.h"
 
+const char* errstrs [] = {
+    "SUCCESS",
+    "FEATURE_UNSUPPORTED",
+    "OUT_OF_MEMORY",
+    "NULL_POINTER",
+    "OUT_OF_BOUNDS",
+    "INIT_FAILED",
+    "SHADER_COMPILATION_FAILED",
+    "SHADER_LINK_FAILED",
+    "INVALID_ATTRIBUTE",
+    "INVALID_UNIFORM",
+    "UNKNOWN_ERROR",
+};
+    
+
 static void PrintResult(const TestCase* test,
         const TestResult* res,
         FILE* output)
@@ -21,7 +36,8 @@ static void PrintResult(const TestCase* test,
                 res->report.count,
                 res->elapsed);
     } else {
-        fprintf(output, "%s", "TODO, improve error reporting");
+        LOGI("ERROR %s", errstrs[res->err]);
+        fprintf(output, "ERROR %s", errstrs[res->err]);
     }
     fprintf(output, "%s", "\n");
 }

@@ -47,6 +47,7 @@ TestError SetupDepthAndColorFbo(SceneFramebuffer* fb);
 TestError SetupDepthRBOAndColorTex(SceneFramebuffer* fb);
 TestError bufferDataSceneVertexGrid(int width, int height) ;
 TestError CompileSceneShaders(ShaderPair* priv);
+TestError CompileSceneShadersFragVersion(ShaderPair* priv);
 TestError GetSceneUniformAndAttribLocs(GLuint prg,
         SceneAttribLocs* attribs,
         SceneUniformLocs* uniforms);

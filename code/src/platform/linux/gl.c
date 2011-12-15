@@ -7,7 +7,7 @@ TestError GlPlatformSetup() {
     glutCreateWindow("OpenGL Insights");
     GLenum err = glewInit();
     if (err != GLEW_OK) {
-        fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
+        LOGW( "Error: %s\n", glewGetErrorString(err));
         return FEATURE_UNSUPPORTED;
     }
     return SUCCESS;

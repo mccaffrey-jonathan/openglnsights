@@ -11,6 +11,7 @@ do { \
     fprintf(stdout, __VA_ARGS__);\
     fprintf(stdout, "\n"); \
 } while(0)
+
 #define LOGW(...) \
 do { \
     fprintf(stderr, __VA_ARGS__);\
